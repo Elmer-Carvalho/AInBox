@@ -91,7 +91,7 @@ async def analyze_email_files(
     context: Optional[str] = Form(None),
     connection_id: Optional[str] = Form(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    request_obj: Request = None,
+    request_obj: Request,
     rate_limiter: RateLimiter = RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW)
 ) -> EmailAnalysisResponse:
     """

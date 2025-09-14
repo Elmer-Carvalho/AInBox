@@ -9,7 +9,6 @@ import asyncio
 
 from app.core.config import settings
 from app.websocket.manager import websocket_manager
-from app.services.rate_limiter import rate_limiter
 from app.services.security_validator import security_validator
 
 
@@ -71,54 +70,8 @@ async def detailed_health_check() -> Dict[str, Any]:
             "rate_limit_per_minute": settings.RATE_LIMIT_PER_MINUTE
         },
         "security": {
-            "validation_stats": security_validator.get_validation_stats(),
-            "rate_limiter_available": rate_limiter.redis_client is not None
+            "validation_stats": security_validator.get_validation_stats()
         }
     }
 
 
-@router.get("/rate-limit/{client_ip}")
-async def get_rate_limit_status(client_ip: str) -> Dict[str, Any]:
-    """
-    Get rate limiting status for a specific client IP
-    
-    Args:
-        client_ip: Client IP address
-        
-    Returns:
-        Dict[str, Any]: Rate limiting status
-    """
-    try:
-        stats = rate_limiter.get_client_stats(client_ip)
-        return stats
-    except Exception as e:
-        return {
-            "error": f"Error getting rate limit status: {str(e)}",
-            "client_ip": client_ip
-        }
-
-
-@router.post("/rate-limit/{client_ip}/reset")
-async def reset_rate_limit(client_ip: str) -> Dict[str, Any]:
-    """
-    Reset rate limit for a specific client IP (admin function)
-    
-    Args:
-        client_ip: Client IP address
-        
-    Returns:
-        Dict[str, Any]: Reset result
-    """
-    try:
-        success = rate_limiter.reset_client_limit(client_ip)
-        return {
-            "success": success,
-            "client_ip": client_ip,
-            "message": "Rate limit reset successfully" if success else "Failed to reset rate limit"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Error resetting rate limit: {str(e)}",
-            "client_ip": client_ip
-        }

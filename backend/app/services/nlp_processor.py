@@ -8,14 +8,10 @@ import unicodedata
 from typing import Dict, List, Tuple, Optional, Any
 import nltk
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.stem import PorterStemmer, WordNetLemmatizer
-from nltk.tag import pos_tag
-from nltk.chunk import ne_chunk
-from nltk.tree import Tree
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
 from textblob import TextBlob
 from langdetect import detect, DetectorFactory
-import unidecode
 from loguru import logger
 
 # Set seed for consistent language detection
@@ -57,9 +53,8 @@ class NLPProcessor:
     
     def _initialize_components(self) -> None:
         """Initialize NLP components"""
-        # Initialize stemmer and lemmatizer
+        # Initialize stemmer
         self.stemmer = PorterStemmer()
-        self.lemmatizer = WordNetLemmatizer()
         
         # Get stopwords for multiple languages
         self.stop_words = {
@@ -439,9 +434,7 @@ class NLPProcessor:
             'processed_text': '',
             'language': 'en',
             'tokens': [],
-            'entities': [],
             'sentiment': {'polarity': 0.0, 'subjectivity': 0.0, 'label': 'neutral'},
-            'key_phrases': [],
             'word_count': 0,
             'char_count': 0,
             'processing_metadata': {
@@ -459,9 +452,7 @@ class NLPProcessor:
             'processed_text': '',
             'language': 'en',
             'tokens': [],
-            'entities': [],
             'sentiment': {'polarity': 0.0, 'subjectivity': 0.0, 'label': 'neutral'},
-            'key_phrases': [],
             'word_count': 0,
             'char_count': 0,
             'error': error,
