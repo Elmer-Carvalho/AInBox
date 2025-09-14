@@ -66,16 +66,42 @@ backend/
 
 ## Execução
 
-### Desenvolvimento
+### Desenvolvimento Local
 
 ```bash
+# Instalar dependências
+pip install -r requirements.txt
+
+# Configurar NLTK
+python setup_nltk.py
+
+# Executar aplicação
 python main.py
 ```
 
-### Produção
+### Docker
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
+# Build da imagem
+docker build -t ainbox-backend .
+
+# Executar container
+docker run -p 8000:8000 \
+  -e GOOGLE_API_KEY=your_api_key \
+  -e REDIS_HOST=localhost \
+  ainbox-backend
+```
+
+### Google Cloud Run
+
+```bash
+# Deploy direto do código fonte
+gcloud run deploy ainbox-backend \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars="GOOGLE_API_KEY=your_api_key"
 ```
 
 ## Endpoints
