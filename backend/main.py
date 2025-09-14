@@ -8,9 +8,10 @@ import json
 import time
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 from loguru import logger
 
 from app.core.config import settings
@@ -45,7 +46,7 @@ async def lifespan(app: FastAPI):
         logger.info(f"  - Redis URL: {redis_url}")
         
         await FastAPILimiter.init(
-            redis_url=redis_url,
+            redis=redis_url,
             password=settings.REDIS_PASSWORD,
             ssl=settings.REDIS_SSL
         )
@@ -79,7 +80,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan
     )
     
-    # Configure CORS - Configuração otimizada para WebSockets e ferramentas externas
+    # Configure CORS - Configuração otimizada para WebSockets e Google Cloud Run
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],  # Permite qualquer origem
@@ -99,9 +100,18 @@ def create_app() -> FastAPI:
             "Sec-WebSocket-Version",
             "Sec-WebSocket-Protocol",
             "Sec-WebSocket-Extensions",
+            "Sec-WebSocket-Accept",
+            "Connection",
+            "Upgrade",
+            "Cache-Control",
+            "Pragma"
+        ],
+        expose_headers=[
+            "Sec-WebSocket-Accept",
+            "Sec-WebSocket-Protocol",
             "Connection",
             "Upgrade"
-        ],
+        ]
     )
     
     # Add trusted host middleware for security
@@ -109,6 +119,33 @@ def create_app() -> FastAPI:
         TrustedHostMiddleware,
         allowed_hosts=["*"]  # Em produção, especifique os domínios exatos
     )
+    
+    # Middleware específico para Google Cloud Run e WebSockets
+    @app.middleware("http")
+    async def cloud_run_websocket_middleware(request: Request, call_next):
+        """
+        Middleware para otimizar WebSockets no Google Cloud Run
+        """
+        # Adicionar headers específicos para WebSocket
+        if request.url.path == "/ws":
+            response = Response()
+            response.headers["Upgrade"] = "websocket"
+            response.headers["Connection"] = "Upgrade"
+            response.headers["Sec-WebSocket-Accept"] = "websocket"
+            response.headers["Cache-Control"] = "no-cache"
+            response.headers["Pragma"] = "no-cache"
+            return response
+        
+        # Para outras rotas, processar normalmente
+        response = await call_next(request)
+        
+        # Adicionar headers CORS para todas as respostas
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "Sec-WebSocket-Accept, Sec-WebSocket-Protocol, Connection, Upgrade"
+        
+        return response
     
     # Rate limiting is handled by fastapi-limiter decorators
     
@@ -127,14 +164,48 @@ def create_app() -> FastAPI:
             "active_connections": websocket_manager.get_connection_count(),
             "connection_ids": websocket_manager.get_connection_ids(),
             "cors_enabled": True,
+            "cloud_run_optimized": True,
             "supported_origins": ["*"],
             "supported_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
             "supported_headers": [
                 "Accept", "Accept-Language", "Content-Language", "Content-Type",
                 "Authorization", "X-Requested-With", "Origin",
                 "Sec-WebSocket-Key", "Sec-WebSocket-Version", "Sec-WebSocket-Protocol",
-                "Sec-WebSocket-Extensions", "Connection", "Upgrade"
-            ]
+                "Sec-WebSocket-Extensions", "Sec-WebSocket-Accept", "Connection", "Upgrade",
+                "Cache-Control", "Pragma"
+            ],
+            "test_url": "wss://ainbox-backend-356969755759.southamerica-east1.run.app/ws"
+        }
+    
+    # Endpoint de diagnóstico para WebSocket
+    @app.get("/ws-diagnostic")
+    async def websocket_diagnostic(request: Request):
+        """
+        Endpoint de diagnóstico detalhado para WebSocket
+        """
+        return {
+            "request_info": {
+                "method": request.method,
+                "url": str(request.url),
+                "headers": dict(request.headers),
+                "client_ip": request.client.host if request.client else "unknown"
+            },
+            "websocket_config": {
+                "endpoint": "/ws",
+                "protocol": "wss",
+                "cors_headers": {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Expose-Headers": "Sec-WebSocket-Accept, Sec-WebSocket-Protocol, Connection, Upgrade"
+                }
+            },
+            "cloud_run_info": {
+                "environment": "Google Cloud Run",
+                "region": "southamerica-east1",
+                "service": "ainbox-backend",
+                "websocket_support": True
+            }
         }
     
     # WebSocket endpoint
@@ -142,14 +213,18 @@ def create_app() -> FastAPI:
     async def websocket_endpoint(websocket):
         """
         WebSocket endpoint for real-time communication
-        Suporta conexões de qualquer ferramenta externa
+        Otimizado para Google Cloud Run e ferramentas externas
         """
         connection_id = None
         try:
+            # Log de tentativa de conexão
+            logger.info(f"🔌 Tentativa de conexão WebSocket")
+            logger.info(f"🔌 Client headers: {dict(websocket.headers)}")
+            logger.info(f"🔌 Client origin: {websocket.headers.get('origin', 'unknown')}")
+            
             # Conectar ao manager (que já aceita a conexão)
             connection_id = await websocket_manager.connect(websocket)
             logger.info(f"🔌 WebSocket connected: {connection_id}")
-            logger.info(f"🔌 Client headers: {dict(websocket.headers)}")
             
             # Enviar mensagem de boas-vindas
             await websocket_manager.send_personal_message({
@@ -157,7 +232,8 @@ def create_app() -> FastAPI:
                 "message": "Conexão WebSocket estabelecida com sucesso!",
                 "connection_id": connection_id,
                 "server": "AInBox API",
-                "version": "1.0.0"
+                "version": "1.0.0",
+                "cloud_run": True
             }, connection_id)
             
             # Loop principal de mensagens
