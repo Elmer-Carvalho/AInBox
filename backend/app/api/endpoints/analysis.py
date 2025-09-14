@@ -2,7 +2,7 @@
 Email analysis endpoints
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Form, Request
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Form, Request, Depends
 from fastapi_limiter.depends import RateLimiter
 from pydantic import BaseModel
 from typing import List, Optional
@@ -35,10 +35,10 @@ class EmailAnalysisResponse(BaseModel):
 
 @router.post("/emails", response_model=EmailAnalysisResponse)
 async def analyze_emails(
-    request_obj: Request,
     request: EmailAnalysisRequest,
     background_tasks: BackgroundTasks,
-    rate_limiter: RateLimiter = RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW)
+    request_obj: Request,
+    rate_limiter: RateLimiter = Depends(RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW))
 ) -> EmailAnalysisResponse:
     """
     Start email analysis process
@@ -92,7 +92,7 @@ async def analyze_email_files(
     context: Optional[str] = Form(None),
     connection_id: Optional[str] = Form(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    rate_limiter: RateLimiter = RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW)
+    rate_limiter: RateLimiter = Depends(RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW))
 ) -> EmailAnalysisResponse:
     """
     Start email analysis process from uploaded files
