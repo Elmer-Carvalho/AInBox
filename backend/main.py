@@ -14,7 +14,19 @@ from app.api.routes import api_router
 from app.websocket.manager import websocket_manager
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
+from fastapi import Depends
 
+# Global variable to track rate limiter status
+RATE_LIMITER_AVAILABLE = False
+
+def get_rate_limiter():
+    """
+    Get rate limiter dependency if available, otherwise return None
+    """
+    if RATE_LIMITER_AVAILABLE:
+        return Depends(RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW))
+    else:
+        return Depends(lambda: None)  # No rate limiting
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,6 +47,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"  - REDIS_SSL: {settings.REDIS_SSL}")
     
     # Initialize rate limiter
+    global RATE_LIMITER_AVAILABLE
     logger.info("🔄 Initializing FastAPILimiter...")
     try:
         redis_url = f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}"
@@ -45,8 +58,10 @@ async def lifespan(app: FastAPI):
             password=settings.REDIS_PASSWORD,
             ssl=settings.REDIS_SSL
         )
+        RATE_LIMITER_AVAILABLE = True
         logger.info("✅ Rate limiter initialized successfully")
     except Exception as e:
+        RATE_LIMITER_AVAILABLE = False
         logger.error(f"❌ Rate limiter initialization failed: {e}")
         logger.error(f"  - Error type: {type(e).__name__}")
         logger.error(f"  - Error details: {str(e)}")

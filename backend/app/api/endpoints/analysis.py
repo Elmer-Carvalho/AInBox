@@ -15,6 +15,7 @@ from app.services.file_processor import FileProcessor
 from app.services.security_validator import security_validator
 from app.websocket.manager import websocket_manager
 from loguru import logger
+from main import get_rate_limiter
 
 
 router = APIRouter()
@@ -39,7 +40,7 @@ async def analyze_emails(
     request: EmailAnalysisRequest,
     background_tasks: BackgroundTasks,
     request_obj: Request,
-    rate_limiter: RateLimiter = Depends(RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW))
+    rate_limiter = get_rate_limiter()
 ) -> EmailAnalysisResponse:
     """
     Start email analysis process
@@ -52,7 +53,7 @@ async def analyze_emails(
         EmailAnalysisResponse: Analysis initiation response
     """
     logger.info("📧 Email analysis endpoint called")
-    logger.info(f"  - Rate limiter status: {rate_limiter}")
+    logger.info(f"  - Rate limiter status: {'Enabled' if rate_limiter else 'Disabled'}")
     logger.info(f"  - Number of emails: {len(request.emails)}")
     logger.info(f"  - Connection ID: {request.connection_id}")
     
@@ -98,7 +99,7 @@ async def analyze_email_files(
     context: Optional[str] = Form(None),
     connection_id: Optional[str] = Form(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    rate_limiter: RateLimiter = Depends(RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW))
+    rate_limiter = get_rate_limiter()
 ) -> EmailAnalysisResponse:
     """
     Start email analysis process from uploaded files
@@ -113,7 +114,7 @@ async def analyze_email_files(
         EmailAnalysisResponse: Analysis initiation response
     """
     logger.info("📁 File analysis endpoint called")
-    logger.info(f"  - Rate limiter status: {rate_limiter}")
+    logger.info(f"  - Rate limiter status: {'Enabled' if rate_limiter else 'Disabled'}")
     logger.info(f"  - Number of files: {len(files)}")
     logger.info(f"  - Connection ID: {connection_id}")
     
