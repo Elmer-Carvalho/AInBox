@@ -15,7 +15,7 @@ from app.services.file_processor import FileProcessor
 from app.services.security_validator import security_validator
 from app.websocket.manager import websocket_manager
 from loguru import logger
-from main import get_rate_limiter
+from app.dependencies import get_rate_limiter
 
 
 router = APIRouter()
