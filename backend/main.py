@@ -27,6 +27,17 @@ async def lifespan(app: FastAPI):
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
     
+    # Initialize rate limiter
+    try:
+        await FastAPILimiter.init(
+            redis_url=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
+            password=settings.REDIS_PASSWORD,
+            ssl=settings.REDIS_SSL
+        )
+        logger.info("Rate limiter initialized successfully")
+    except Exception as e:
+        logger.warning(f"Rate limiter initialization failed: {e}. Using fallback mode.")
+    
     yield
     
     # Shutdown
@@ -59,20 +70,6 @@ def create_app() -> FastAPI:
     
     # Include API routes
     app.include_router(api_router, prefix="/api/v1")
-    
-    # Initialize rate limiter on startup
-    @app.on_event("startup")
-    async def startup_event():
-        """Initialize rate limiter on startup"""
-        try:
-            await FastAPILimiter.init(
-                redis_url=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
-                password=settings.REDIS_PASSWORD,
-                ssl=settings.REDIS_SSL
-            )
-            logger.info("Rate limiter initialized successfully")
-        except Exception as e:
-            logger.warning(f"Rate limiter initialization failed: {e}. Using fallback mode.")
     
     # WebSocket endpoint
     @app.websocket("/ws")
