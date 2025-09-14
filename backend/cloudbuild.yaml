@@ -1,5 +1,5 @@
 steps:
-  # Etapa 1: Constrói a imagem Docker a partir do Dockerfile na pasta 'backend'
+  # Etapa 1: Constrói a imagem Docker
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "build"
@@ -14,7 +14,7 @@ steps:
       - "push"
       - "southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}"
 
-  # Etapa 3: Faz o deploy da nova imagem no serviço existente do Cloud Run com todas as variáveis
+  # Etapa 3: Faz o deploy no Cloud Run com a configuração de ambiente CORRETA e UNIFICADA
   - name: "gcr.io/google-appengine/exec-wrapper"
     args:
       - "-i"
@@ -32,22 +32,10 @@ steps:
       - "--allow-unauthenticated"
       - "--memory=1Gi"
       - "--cpu=1"
-      - "--min-instances=0"
-      - "--max-instances=10"
       - "--timeout=300"
-      - "--concurrency=1000"
-      # Configurações básicas da aplicação
-      - "--set-env-vars=APP_NAME=AInBox API,VERSION=1.0.0,ENVIRONMENT=production,DEBUG=false,HOST=0.0.0.0"
-      # Configurações de CORS e WebSocket
-      - "--update-env-vars=ALLOWED_ORIGINS=*,GEMINI_MODEL=gemini-1.5-flash,WS_HEARTBEAT_INTERVAL=30,WS_MAX_CONNECTIONS=100"
-      # Configurações de processamento de arquivos
-      - "--update-env-vars=MAX_FILE_SIZE=5242880,MAX_TOTAL_SIZE=104857600,MAX_FILES_PER_REQUEST=20,MAX_STRINGS_PER_REQUEST=20,ALLOWED_FILE_TYPES=.txt%2C.pdf"
-      # Configurações de rate limiting
-      - "--update-env-vars=RATE_LIMIT_PER_MINUTE=10,RATE_LIMIT_WINDOW=60,RATE_LIMIT_BURST=5"
-      # Configurações do Redis (valores padrão)
-      - "--update-env-vars=REDIS_HOST=localhost,REDIS_PORT=6379,REDIS_DB=0,REDIS_SSL=false,REDIS_TTL=60"
-      # Configurações de logging
-      - "--update-env-vars=LOG_LEVEL=info"
+      - "--concurrency=80"
+      # TODAS as variáveis de ambiente não-secretas definidas em UMA ÚNICA flag
+      - "--set-env-vars=APP_NAME=AInBox API,VERSION=1.0.0,ENVIRONMENT=production,DEBUG=false,HOST=0.0.0.0,ALLOWED_ORIGINS=*,GEMINI_MODEL=gemini-1.5-flash,WS_HEARTBEAT_INTERVAL=30,WS_MAX_CONNECTIONS=100,MAX_FILE_SIZE=5242880,MAX_TOTAL_SIZE=104857600,MAX_FILES_PER_REQUEST=20,MAX_STRINGS_PER_REQUEST=20,ALLOWED_FILE_TYPES=.txt,.pdf,RATE_LIMIT_PER_MINUTE=10,RATE_LIMIT_WINDOW=60,RATE_LIMIT_BURST=5,REDIS_HOST=10.53.247.67,REDIS_PORT=6379,REDIS_DB=0,REDIS_SSL=true,REDIS_TTL=60"
 
 images:
   - "southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}"
