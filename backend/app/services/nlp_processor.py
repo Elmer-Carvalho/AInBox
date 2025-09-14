@@ -43,7 +43,15 @@ class NLPProcessor:
             
             for resource in nltk_data:
                 try:
-                    nltk.data.find(f'tokenizers/{resource}')
+                    # Check if resource exists with different paths
+                    if resource in ['punkt', 'stopwords', 'wordnet', 'words']:
+                        nltk.data.find(f'tokenizers/{resource}')
+                    elif resource == 'averaged_perceptron_tagger':
+                        nltk.data.find(f'taggers/{resource}')
+                    elif resource == 'maxent_ne_chunker':
+                        nltk.data.find(f'chunkers/{resource}')
+                    else:
+                        nltk.data.find(resource)
                 except LookupError:
                     logger.info(f"Downloading NLTK resource: {resource}")
                     nltk.download(resource, quiet=True)
@@ -85,7 +93,7 @@ class NLPProcessor:
         """Add Brazilian Portuguese specific stopwords"""
         brazilian_stopwords = {
             # Common Brazilian Portuguese words
-            'aí', 'aqui', 'ali', 'lá', 'aqui', 'aonde', 'onde', 'quando',
+            'aí', 'aqui', 'ali', 'lá', 'aonde', 'onde', 'quando',
             'como', 'porque', 'porquê', 'por que', 'então', 'assim', 'também',
             'tambem', 'mesmo', 'mesma', 'mesmos', 'mesmas', 'outro', 'outra',
             'outros', 'outras', 'todo', 'toda', 'todos', 'todas', 'cada',
@@ -95,17 +103,16 @@ class NLPProcessor:
             'bem', 'mal', 'melhor', 'pior', 'grande', 'pequeno', 'novo',
             'velho', 'jovem', 'antigo', 'moderno', 'atual', 'passado',
             'futuro', 'presente', 'hoje', 'ontem', 'amanhã', 'agora',
-            'depois', 'antes', 'durante', 'enquanto', 'quando', 'sempre',
+            'depois', 'antes', 'durante', 'enquanto', 'sempre',
             'nunca', 'jamais', 'talvez', 'provavelmente', 'certamente',
             'obviamente', 'claramente', 'evidentemente', 'realmente',
             'verdadeiramente', 'efetivamente', 'praticamente', 'basicamente',
             'principalmente', 'especialmente', 'particularmente', 'especificamente',
             'geralmente', 'normalmente', 'habitualmente', 'frequentemente',
             'raramente', 'ocasionalmente', 'eventualmente', 'finalmente',
-            'inicialmente', 'primeiramente', 'segundamente', 'terceiramente',
-            'ultimamente', 'recentemente', 'antigamente', 'antigamente',
+            'inicialmente', 'primeiramente', 'ultimamente', 'recentemente',
             'atualmente', 'presentemente', 'momentaneamente', 'temporariamente',
-            'permanentemente', 'definitivamente', 'finalmente', 'conclusivamente',
+            'permanentemente', 'definitivamente', 'conclusivamente',
             'decisivamente', 'determinadamente', 'resolutamente', 'firmemente',
             'solidamente', 'estavelmente', 'constantemente', 'continuamente',
             'incessantemente', 'perpetuamente', 'eternamente', 'infinitamente',
@@ -120,12 +127,10 @@ class NLPProcessor:
             'tranquilamente', 'pacificamente', 'serenamente', 'quietamente',
             'silenciosamente', 'secretamente', 'privadamente', 'pessoalmente',
             'individualmente', 'particularmente', 'especificamente', 'especialmente',
-            'principalmente', 'sobretudo', 'especialmente', 'particularmente',
-            'especificamente', 'detalhadamente', 'minuciosamente', 'cuidadosamente',
+            'principalmente', 'sobretudo', 'detalhadamente', 'minuciosamente', 'cuidadosamente',
             'atentamente', 'observantemente', 'vigilantemente', 'cautelosamente',
             'prudentemente', 'sabiamente', 'inteligentemente', 'esperto',
-            'esperta', 'esperto', 'esperta', 'inteligente', 'sábio', 'sábia',
-            'sábio', 'sábia', 'esperto', 'esperta', 'esperto', 'esperta'
+            'esperta', 'inteligente', 'sábio', 'sábia'
         }
         
         # Add to Portuguese stopwords

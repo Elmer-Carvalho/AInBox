@@ -48,7 +48,7 @@ class AIService:
             prompt = self._build_analysis_prompt(email_content, context, language)
             
             # Generate response from Gemini
-            response = await self._generate_response(prompt)
+            response = self._generate_response(prompt)
             
             # Parse and validate response
             result = self._parse_ai_response(response)
@@ -101,7 +101,7 @@ Email: "{email_content}"
         
         return prompt
     
-    async def _generate_response(self, prompt: str) -> str:
+    def _generate_response(self, prompt: str) -> str:
         """
         Generate response from Gemini AI
         
@@ -176,7 +176,7 @@ Email: "{email_content}"
         """
         try:
             test_prompt = "Respond with 'OK' if you can process this request."
-            response = await self._generate_response(test_prompt)
+            response = self._generate_response(test_prompt)
             logger.info("AI service connection test successful")
             return True
         except Exception as e:

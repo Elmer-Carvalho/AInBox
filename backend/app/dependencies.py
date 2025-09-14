@@ -14,4 +14,7 @@ def get_rate_limiter():
     if RATE_LIMITER_AVAILABLE:
         return Depends(RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW))
     else:
-        return Depends(lambda: None)  # Sem rate limiting
+        # Retorna uma dependência que não faz nada (bypass do rate limiting)
+        def no_rate_limit():
+            return None
+        return Depends(no_rate_limit)

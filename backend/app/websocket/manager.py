@@ -92,7 +92,8 @@ class WebSocketManager:
             except Exception as e:
                 logger.error(f"Error sending message to {connection_id}: {e}")
                 # Remove broken connection
-                await self.disconnect(websocket)
+                if connection_id in self.active_connections:
+                    del self.active_connections[connection_id]
     
     async def broadcast_message(self, message: Dict[str, Any]) -> None:
         """
@@ -137,10 +138,11 @@ class WebSocketManager:
             result: Analysis result data
             connection_id: Target connection ID (if None, broadcasts to all)
         """
+        import time
         message = {
             "type": "analysis_result",
             "data": result,
-            "timestamp": asyncio.get_event_loop().time()
+            "timestamp": time.time()
         }
         
         if connection_id:
@@ -155,10 +157,11 @@ class WebSocketManager:
         Args:
             connection_id: Target connection ID (if None, broadcasts to all)
         """
+        import time
         message = {
             "type": "analysis_complete",
             "message": "All emails have been processed",
-            "timestamp": asyncio.get_event_loop().time()
+            "timestamp": time.time()
         }
         
         if connection_id:
@@ -174,10 +177,11 @@ class WebSocketManager:
             error: Error message
             connection_id: Target connection ID (if None, broadcasts to all)
         """
+        import time
         message = {
             "type": "error",
             "message": error,
-            "timestamp": asyncio.get_event_loop().time()
+            "timestamp": time.time()
         }
         
         if connection_id:

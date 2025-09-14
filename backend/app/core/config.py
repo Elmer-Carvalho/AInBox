@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = int(os.getenv("PORT", "8000"))  # Google Cloud Run sets PORT automatically
     
-    # CORS settings
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,https://your-frontend-domain.com,*"
+    # CORS settings - Configuração mais permissiva para ferramentas externas
+    ALLOWED_ORIGINS: str = "*"  # Permite qualquer origem para ferramentas de teste
     
     # Google Gemini API settings
     GOOGLE_API_KEY: str = ""

@@ -19,7 +19,7 @@ class FileProcessor:
     
     def __init__(self):
         """Initialize file processor"""
-        self.allowed_extensions = settings.ALLOWED_FILE_TYPES
+        self.allowed_extensions = settings.allowed_file_types_list
         self.max_file_size = settings.MAX_FILE_SIZE
         logger.info("File processor initialized")
     

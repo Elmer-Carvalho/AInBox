@@ -4,9 +4,13 @@ Main FastAPI application entry point
 """
 
 import os
+import json
+import time
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from loguru import logger
 
 from app.core.config import settings
@@ -75,13 +79,35 @@ def create_app() -> FastAPI:
         lifespan=lifespan
     )
     
-    # Configure CORS
+    # Configure CORS - Configuração otimizada para WebSockets e ferramentas externas
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.allowed_origins_list,
-        # allow_credentials=True, # LINHA REMOVIDA - conflito com allow_origins=['*']
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=["*"],  # Permite qualquer origem
+        allow_credentials=False,  # Deve ser False quando allow_origins=["*"]
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+        allow_headers=[
+            "Accept",
+            "Accept-Language",
+            "Content-Language",
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers",
+            "Sec-WebSocket-Key",
+            "Sec-WebSocket-Version",
+            "Sec-WebSocket-Protocol",
+            "Sec-WebSocket-Extensions",
+            "Connection",
+            "Upgrade"
+        ],
+    )
+    
+    # Add trusted host middleware for security
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"]  # Em produção, especifique os domínios exatos
     )
     
     # Rate limiting is handled by fastapi-limiter decorators
@@ -89,30 +115,105 @@ def create_app() -> FastAPI:
     # Include API routes
     app.include_router(api_router, prefix="/api/v1")
     
+    # WebSocket status endpoint
+    @app.get("/ws-status")
+    async def websocket_status():
+        """
+        Endpoint para verificar status do WebSocket
+        """
+        return {
+            "websocket_available": True,
+            "endpoint": "/ws",
+            "active_connections": websocket_manager.get_connection_count(),
+            "connection_ids": websocket_manager.get_connection_ids(),
+            "cors_enabled": True,
+            "supported_origins": ["*"],
+            "supported_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+            "supported_headers": [
+                "Accept", "Accept-Language", "Content-Language", "Content-Type",
+                "Authorization", "X-Requested-With", "Origin",
+                "Sec-WebSocket-Key", "Sec-WebSocket-Version", "Sec-WebSocket-Protocol",
+                "Sec-WebSocket-Extensions", "Connection", "Upgrade"
+            ]
+        }
+    
     # WebSocket endpoint
     @app.websocket("/ws")
     async def websocket_endpoint(websocket):
         """
         WebSocket endpoint for real-time communication
+        Suporta conexões de qualquer ferramenta externa
         """
-        # Aceitar conexão sem verificação CORS (resolve problema 403)
-        await websocket.accept()
-        logger.info("🔌 WebSocket connection accepted")
-        
-        # Conectar ao manager
-        await websocket_manager.connect(websocket)
-        logger.info("📡 WebSocket connected to manager")
-        
+        connection_id = None
         try:
+            # Conectar ao manager (que já aceita a conexão)
+            connection_id = await websocket_manager.connect(websocket)
+            logger.info(f"🔌 WebSocket connected: {connection_id}")
+            logger.info(f"🔌 Client headers: {dict(websocket.headers)}")
+            
+            # Enviar mensagem de boas-vindas
+            await websocket_manager.send_personal_message({
+                "type": "welcome",
+                "message": "Conexão WebSocket estabelecida com sucesso!",
+                "connection_id": connection_id,
+                "server": "AInBox API",
+                "version": "1.0.0"
+            }, connection_id)
+            
+            # Loop principal de mensagens
             while True:
-                # Keep connection alive and handle incoming messages
-                data = await websocket.receive_text()
-                logger.debug(f"📨 Received WebSocket message: {data}")
+                try:
+                    # Receber mensagem com timeout
+                    data = await asyncio.wait_for(websocket.receive_text(), timeout=300.0)
+                    logger.debug(f"📨 Received WebSocket message: {data}")
+                    
+                    # Processar mensagem
+                    try:
+                        message_data = json.loads(data)
+                        message_type = message_data.get("type", "unknown")
+                    except json.JSONDecodeError:
+                        message_type = "text"
+                        message_data = {"type": "text", "content": data}
+                    
+                    # Echo back com informações adicionais
+                    response = {
+                        "type": "echo",
+                        "original_message": message_data,
+                        "connection_id": connection_id,
+                        "timestamp": time.time(),
+                        "server_response": f"Processado: {message_type}"
+                    }
+                    
+                    await websocket_manager.send_personal_message(response, connection_id)
+                    
+                except asyncio.TimeoutError:
+                    # Enviar ping para manter conexão viva
+                    await websocket_manager.send_personal_message({
+                        "type": "ping",
+                        "message": "Conexão ativa",
+                        "connection_id": connection_id
+                    }, connection_id)
+                    
         except Exception as e:
             logger.error(f"❌ WebSocket error: {e}")
+            logger.error(f"  - Error type: {type(e).__name__}")
+            logger.error(f"  - Error details: {str(e)}")
+            logger.error(f"  - Connection ID: {connection_id}")
+            
+            # Tentar enviar mensagem de erro se possível
+            if connection_id:
+                try:
+                    await websocket_manager.send_personal_message({
+                        "type": "error",
+                        "message": f"Erro na conexão: {str(e)}",
+                        "connection_id": connection_id
+                    }, connection_id)
+                except:
+                    pass
         finally:
-            await websocket_manager.disconnect(websocket)
-            logger.info("🔌 WebSocket disconnected")
+            if connection_id:
+                await websocket_manager.disconnect(websocket)
+                logger.info(f"🔌 WebSocket disconnected: {connection_id}")
     
     return app
 
