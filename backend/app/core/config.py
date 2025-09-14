@@ -3,7 +3,7 @@ Application configuration settings
 """
 
 import os
-from typing import List
+from typing import List, Optional
 from pydantic import BaseSettings
 
 

@@ -212,18 +212,16 @@ curl -X POST "http://localhost:8000/api/v1/analysis/files" \
 - ✅ Classificação binária (Produtivo/Improdutivo)
 - ✅ Geração condicional de sugestões de resposta
 - ✅ Processamento assíncrono em background
-- ✅ **Processamento avançado de NLP com NLTK**
+- ✅ **Processamento NLP simplificado e otimizado para Gemini**
 - ✅ **Detecção automática de idioma**
-- ✅ **Análise de sentimento otimizada para português brasileiro**
-- ✅ **Extração de entidades nomeadas**
+- ✅ **Análise de sentimento para português brasileiro**
 - ✅ **Normalização e limpeza inteligente de texto**
-- ✅ **Remoção de stopwords e stemming para PT-BR**
+- ✅ **Remoção de stopwords para PT-BR**
 - ✅ **Prompts multilíngues para IA**
-- ✅ **Stopwords específicas do português brasileiro**
 - ✅ **Upload de arquivos .pdf e .txt**
 - ✅ **Extração de texto de PDFs**
 - ✅ **Processamento em memória (stateless)**
-- ✅ **Rate limiting com Redis (10 req/min)**
+- ✅ **Rate limiting profissional com fastapi-limiter**
 - ✅ **Validação de segurança de arquivos**
 - ✅ **Limites de tamanho e quantidade**
 - ✅ **Detecção de conteúdo suspeito**

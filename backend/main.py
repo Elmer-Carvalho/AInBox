@@ -12,7 +12,8 @@ from loguru import logger
 from app.core.config import settings
 from app.api.routes import api_router
 from app.websocket.manager import websocket_manager
-from app.middleware.rate_limit_middleware import RateLimitMiddleware
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 
 
 @asynccontextmanager
@@ -25,6 +26,17 @@ async def lifespan(app: FastAPI):
     logger.info("Starting AInBox Backend...")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
+    
+    # Initialize rate limiter
+    try:
+        await FastAPILimiter.init(
+            redis_url=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
+            password=settings.REDIS_PASSWORD,
+            ssl=settings.REDIS_SSL
+        )
+        logger.info("Rate limiter initialized successfully")
+    except Exception as e:
+        logger.warning(f"Rate limiter initialization failed: {e}. Using fallback mode.")
     
     yield
     
@@ -54,8 +66,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # Add rate limiting middleware
-    app.add_middleware(RateLimitMiddleware)
+    # Rate limiting is handled by fastapi-limiter decorators
     
     # Include API routes
     app.include_router(api_router, prefix="/api/v1")

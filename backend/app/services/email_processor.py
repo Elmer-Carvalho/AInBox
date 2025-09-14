@@ -68,8 +68,6 @@ class EmailProcessor:
                 "nlp_analysis": {
                     "language": nlp_result.get('language', 'unknown'),
                     "sentiment": nlp_result.get('sentiment', {}),
-                    "entities": nlp_result.get('entities', []),
-                    "key_phrases": nlp_result.get('key_phrases', []),
                     "word_count": nlp_result.get('word_count', 0),
                     "processing_metadata": nlp_result.get('processing_metadata', {})
                 }

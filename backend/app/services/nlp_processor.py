@@ -138,7 +138,7 @@ class NLPProcessor:
     
     def process_text(self, text: str, language: Optional[str] = None) -> Dict[str, Any]:
         """
-        Comprehensive text processing pipeline
+        Simplified text processing pipeline optimized for Gemini AI
         
         Args:
             text: Input text to process
@@ -155,39 +155,28 @@ class NLPProcessor:
             if not language:
                 language = self.detect_language(text)
             
-            # Clean and normalize text
+            # Basic cleaning and normalization
             cleaned_text = self._clean_and_normalize(text)
             
-            # Tokenize
+            # Simple tokenization for basic analysis
             tokens = self._tokenize(cleaned_text, language)
             
-            # Remove stopwords
+            # Basic stopword removal
             filtered_tokens = self._remove_stopwords(tokens, language)
             
-            # Stem and lemmatize
-            processed_tokens = self._stem_and_lemmatize(filtered_tokens)
+            # Reconstruct processed text (simplified)
+            processed_text = ' '.join(filtered_tokens)
             
-            # Extract entities
-            entities = self._extract_entities(cleaned_text)
-            
-            # Analyze sentiment
+            # Basic sentiment analysis
             sentiment = self._analyze_sentiment(cleaned_text)
-            
-            # Extract key phrases
-            key_phrases = self._extract_key_phrases(cleaned_text, language)
-            
-            # Reconstruct processed text
-            processed_text = ' '.join(processed_tokens)
             
             return {
                 'original_text': text,
                 'processed_text': processed_text,
                 'language': language,
-                'tokens': processed_tokens,
-                'entities': entities,
+                'tokens': filtered_tokens,
                 'sentiment': sentiment,
-                'key_phrases': key_phrases,
-                'word_count': len(processed_tokens),
+                'word_count': len(filtered_tokens),
                 'char_count': len(processed_text),
                 'processing_metadata': {
                     'original_length': len(text),
@@ -353,63 +342,7 @@ class NLPProcessor:
         
         return filtered_tokens
     
-    def _stem_and_lemmatize(self, tokens: List[str]) -> List[str]:
-        """
-        Apply stemming and lemmatization
-        
-        Args:
-            tokens: List of tokens
-            
-        Returns:
-            List[str]: Processed tokens
-        """
-        processed_tokens = []
-        
-        for token in tokens:
-            try:
-                # For Portuguese, use stemming as lemmatization is limited
-                # Porter Stemmer works reasonably well for Portuguese
-                stemmed = self.stemmer.stem(token)
-                processed_tokens.append(stemmed)
-            except Exception:
-                # Fallback to original token
-                processed_tokens.append(token)
-        
-        return processed_tokens
-    
-    def _extract_entities(self, text: str) -> List[Dict[str, str]]:
-        """
-        Extract named entities from text
-        
-        Args:
-            text: Input text
-            
-        Returns:
-            List[Dict[str, str]]: List of entities with types
-        """
-        try:
-            # Tokenize and tag
-            tokens = word_tokenize(text)
-            pos_tags = pos_tag(tokens)
-            
-            # Extract named entities
-            tree = ne_chunk(pos_tags)
-            
-            entities = []
-            for subtree in tree:
-                if isinstance(subtree, Tree):
-                    entity_text = ' '.join([token for token, pos in subtree.leaves()])
-                    entity_type = subtree.label()
-                    entities.append({
-                        'text': entity_text,
-                        'type': entity_type
-                    })
-            
-            return entities
-            
-        except Exception as e:
-            logger.warning(f"Entity extraction failed: {e}")
-            return []
+    # Removed complex NLP methods to simplify for Gemini AI
     
     def _analyze_sentiment(self, text: str) -> Dict[str, float]:
         """
@@ -497,47 +430,7 @@ class NLPProcessor:
         # Clamp polarity to [-1, 1]
         return max(-1.0, min(1.0, polarity))
     
-    def _extract_key_phrases(self, text: str, language: str) -> List[str]:
-        """
-        Extract key phrases from text
-        
-        Args:
-            text: Input text
-            language: Text language
-            
-        Returns:
-            List[str]: List of key phrases
-        """
-        try:
-            blob = TextBlob(text)
-            
-            # Extract noun phrases
-            noun_phrases = blob.noun_phrases
-            
-            # Filter and clean phrases
-            key_phrases = []
-            for phrase in noun_phrases:
-                # Clean phrase
-                clean_phrase = phrase.strip().lower()
-                
-                # Filter by length and content
-                if (len(clean_phrase) > 2 and 
-                    len(clean_phrase) < 50 and
-                    not clean_phrase in self.email_stopwords):
-                    key_phrases.append(clean_phrase)
-            
-            # Remove duplicates and sort by frequency
-            phrase_counts = {}
-            for phrase in key_phrases:
-                phrase_counts[phrase] = phrase_counts.get(phrase, 0) + 1
-            
-            # Return top phrases
-            sorted_phrases = sorted(phrase_counts.items(), key=lambda x: x[1], reverse=True)
-            return [phrase for phrase, count in sorted_phrases[:10]]
-            
-        except Exception as e:
-            logger.warning(f"Key phrase extraction failed: {e}")
-            return []
+    # Removed key phrase extraction to simplify for Gemini AI
     
     def _empty_result(self) -> Dict[str, Any]:
         """Return empty result for empty input"""
