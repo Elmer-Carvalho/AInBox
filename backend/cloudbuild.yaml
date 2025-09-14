@@ -1,36 +1,38 @@
 steps:
   # Etapa 1: Constrói a imagem Docker a partir do Dockerfile na pasta 'backend'
-  - name: "gcr.io/cloud-builders/docker"
+  - name: 'gcr.io/cloud-builders/docker'
     args:
-      - "build"
-      - "-t"
-      - "southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}"
-      - "."
-    dir: "backend" # Importante: informa ao build para rodar dentro da pasta backend
+      - 'build'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}'
+      - '.'
+    dir: 'backend'
 
-  # Etapa 2: Envia a imagem para o Artifact Registry (o serviço recomendado)
-  - name: "gcr.io/cloud-builders/docker"
+  # Etapa 2: Envia a imagem para o Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
     args:
-      - "push"
-      - "southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}"
+      - 'push'
+      - 'southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}'
 
   # Etapa 3: Faz o deploy da nova imagem no serviço existente do Cloud Run
-  - name: "gcr.io/google-appengine/exec-wrapper"
+  - name: 'gcr.io/google-appengine/exec-wrapper'
     args:
-      - "-i"
-      - "gcr.io/cloud-builders/gcloud"
-      - "--"
-      - "run"
-      - "deploy"
-      - "ainbox-backend" # <-- Coloque aqui o nome exato do seu serviço no Cloud Run
-      - "--image"
-      - "southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}"
-      - "--region"
-      - "southamerica-east1" # <-- Região do seu serviço
-      - "--platform"
-      - "managed"
-      - "--allow-unauthenticated"
+      - '-i'
+      - 'gcr.io/cloud-builders/gcloud'
+      - '--'
+      - 'run'
+      - 'deploy'
+      - 'ainbox-backend'
+      - '--image'
+      - 'southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}'
+      - '--region'
+      - 'southamerica-east1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
 
-# Define a imagem final para referência nos logs do Cloud Build
 images:
-  - "southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}"
+  - 'southamerica-east1-docker.pkg.dev/${PROJECT_ID}/ainbox-images/ainbox-backend:${COMMIT_SHA}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
