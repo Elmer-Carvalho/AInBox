@@ -23,11 +23,7 @@ class Settings(BaseSettings):
     PORT: int = int(os.getenv("PORT", "8000"))  # Google Cloud Run sets PORT automatically
     
     # CORS settings
-    ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",  # Vite default port
-        "https://your-frontend-domain.com"  # Production frontend URL
-    ]
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,https://your-frontend-domain.com"
     
     # Google Gemini API settings
     GOOGLE_API_KEY: str = ""
@@ -42,7 +38,7 @@ class Settings(BaseSettings):
     MAX_TOTAL_SIZE: int = 100 * 1024 * 1024  # 100MB total
     MAX_FILES_PER_REQUEST: int = 20
     MAX_STRINGS_PER_REQUEST: int = 20
-    ALLOWED_FILE_TYPES: List[str] = [".txt", ".pdf"]
+    ALLOWED_FILE_TYPES: str = ".txt,.pdf"
     
     # Rate limiting settings
     RATE_LIMIT_PER_MINUTE: int = 10
@@ -60,6 +56,16 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+    
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        """Convert ALLOWED_ORIGINS string to list"""
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+    
+    @property
+    def allowed_file_types_list(self) -> List[str]:
+        """Convert ALLOWED_FILE_TYPES string to list"""
+        return [file_type.strip() for file_type in self.ALLOWED_FILE_TYPES.split(",") if file_type.strip()]
 
 
 # Create settings instance

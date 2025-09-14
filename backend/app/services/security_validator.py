@@ -22,7 +22,7 @@ class SecurityValidator:
         self.max_total_size = settings.MAX_TOTAL_SIZE
         self.max_files_per_request = settings.MAX_FILES_PER_REQUEST
         self.max_strings_per_request = settings.MAX_STRINGS_PER_REQUEST
-        self.allowed_file_types = settings.ALLOWED_FILE_TYPES
+        self.allowed_file_types = settings.allowed_file_types_list
         
         logger.info("Security validator initialized")
     

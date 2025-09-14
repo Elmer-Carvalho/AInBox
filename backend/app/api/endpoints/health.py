@@ -66,7 +66,7 @@ async def detailed_health_check() -> Dict[str, Any]:
             "max_total_size_mb": settings.MAX_TOTAL_SIZE / (1024 * 1024),
             "max_files_per_request": settings.MAX_FILES_PER_REQUEST,
             "max_strings_per_request": settings.MAX_STRINGS_PER_REQUEST,
-            "allowed_file_types": settings.ALLOWED_FILE_TYPES,
+            "allowed_file_types": settings.allowed_file_types_list,
             "rate_limit_per_minute": settings.RATE_LIMIT_PER_MINUTE
         },
         "security": {
