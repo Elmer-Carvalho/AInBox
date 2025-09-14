@@ -19,6 +19,7 @@ python-dotenv==1.0.0
 
 # Data validation and serialization
 pydantic==2.5.0
+pydantic-settings==2.1.0
 
 # Security
 python-multipart==0.0.6
