@@ -10,6 +10,7 @@ import asyncio
 from app.core.config import settings
 from app.websocket.manager import websocket_manager
 from app.services.security_validator import security_validator
+from loguru import logger
 
 
 router = APIRouter()
@@ -32,6 +33,7 @@ async def health_check() -> HealthResponse:
     Returns:
         HealthResponse: Application health status
     """
+    logger.info("🏥 Health check endpoint called")
     return HealthResponse(
         status="healthy",
         version=settings.VERSION,

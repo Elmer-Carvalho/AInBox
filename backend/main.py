@@ -23,25 +23,40 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events
     """
     # Startup
-    logger.info("Starting AInBox Backend...")
+    logger.info("🚀 Starting AInBox Backend...")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
     
+    # Log Redis configuration
+    logger.info("🔧 Redis Configuration:")
+    logger.info(f"  - REDIS_HOST: {settings.REDIS_HOST}")
+    logger.info(f"  - REDIS_PORT: {settings.REDIS_PORT}")
+    logger.info(f"  - REDIS_PASSWORD: {'***' if settings.REDIS_PASSWORD else 'None'}")
+    logger.info(f"  - REDIS_SSL: {settings.REDIS_SSL}")
+    
     # Initialize rate limiter
+    logger.info("🔄 Initializing FastAPILimiter...")
     try:
+        redis_url = f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}"
+        logger.info(f"  - Redis URL: {redis_url}")
+        
         await FastAPILimiter.init(
-            redis_url=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
+            redis_url=redis_url,
             password=settings.REDIS_PASSWORD,
             ssl=settings.REDIS_SSL
         )
-        logger.info("Rate limiter initialized successfully")
+        logger.info("✅ Rate limiter initialized successfully")
     except Exception as e:
-        logger.warning(f"Rate limiter initialization failed: {e}. Using fallback mode.")
+        logger.error(f"❌ Rate limiter initialization failed: {e}")
+        logger.error(f"  - Error type: {type(e).__name__}")
+        logger.error(f"  - Error details: {str(e)}")
+        logger.warning("⚠️ Using fallback mode (no rate limiting)")
     
+    logger.info("🎯 Lifespan startup completed")
     yield
     
     # Shutdown
-    logger.info("Shutting down AInBox Backend...")
+    logger.info("🛑 Shutting down AInBox Backend...")
 
 
 def create_app() -> FastAPI:

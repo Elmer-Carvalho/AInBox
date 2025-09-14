@@ -14,6 +14,7 @@ from app.services.ai_service import AIService
 from app.services.file_processor import FileProcessor
 from app.services.security_validator import security_validator
 from app.websocket.manager import websocket_manager
+from loguru import logger
 
 
 router = APIRouter()
@@ -50,6 +51,11 @@ async def analyze_emails(
     Returns:
         EmailAnalysisResponse: Analysis initiation response
     """
+    logger.info("📧 Email analysis endpoint called")
+    logger.info(f"  - Rate limiter status: {rate_limiter}")
+    logger.info(f"  - Number of emails: {len(request.emails)}")
+    logger.info(f"  - Connection ID: {request.connection_id}")
+    
     try:
         # Validate request using security validator
         validation_result = security_validator.validate_file_upload_request(
@@ -106,6 +112,11 @@ async def analyze_email_files(
     Returns:
         EmailAnalysisResponse: Analysis initiation response
     """
+    logger.info("📁 File analysis endpoint called")
+    logger.info(f"  - Rate limiter status: {rate_limiter}")
+    logger.info(f"  - Number of files: {len(files)}")
+    logger.info(f"  - Connection ID: {connection_id}")
+    
     try:
         # Validate request using security validator
         validation_result = security_validator.validate_file_upload_request(
