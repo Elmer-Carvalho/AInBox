@@ -41,7 +41,7 @@ steps:
       # Configurações de CORS e WebSocket
       - "--update-env-vars=ALLOWED_ORIGINS=*,GEMINI_MODEL=gemini-1.5-flash,WS_HEARTBEAT_INTERVAL=30,WS_MAX_CONNECTIONS=100"
       # Configurações de processamento de arquivos
-      - "--update-env-vars=MAX_FILE_SIZE=5242880,MAX_TOTAL_SIZE=104857600,MAX_FILES_PER_REQUEST=20,MAX_STRINGS_PER_REQUEST=20,ALLOWED_FILE_TYPES=.txt,.pdf"
+      - "--update-env-vars=MAX_FILE_SIZE=5242880,MAX_TOTAL_SIZE=104857600,MAX_FILES_PER_REQUEST=20,MAX_STRINGS_PER_REQUEST=20,ALLOWED_FILE_TYPES=.txt%2C.pdf"
       # Configurações de rate limiting
       - "--update-env-vars=RATE_LIMIT_PER_MINUTE=10,RATE_LIMIT_WINDOW=60,RATE_LIMIT_BURST=5"
       # Configurações do Redis (valores padrão)
