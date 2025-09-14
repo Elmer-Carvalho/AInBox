@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     
     # Server settings
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = int(os.getenv("PORT", "8000"))  # Google Cloud Run sets PORT automatically
     
     # CORS settings
     ALLOWED_ORIGINS: List[str] = [
