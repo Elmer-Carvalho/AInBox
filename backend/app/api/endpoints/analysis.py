@@ -35,9 +35,9 @@ class EmailAnalysisResponse(BaseModel):
 
 @router.post("/emails", response_model=EmailAnalysisResponse)
 async def analyze_emails(
+    request_obj: Request,
     request: EmailAnalysisRequest,
     background_tasks: BackgroundTasks,
-    request_obj: Request,
     rate_limiter: RateLimiter = RateLimiter(times=settings.RATE_LIMIT_PER_MINUTE, seconds=settings.RATE_LIMIT_WINDOW)
 ) -> EmailAnalysisResponse:
     """

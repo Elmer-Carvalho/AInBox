@@ -93,10 +93,10 @@ Respond ONLY in JSON format, without any additional text or formatting. The JSON
 1. "classificacao": with the value "Produtivo" or "Improdutivo"
 2. "sugestao_resposta": If the classification is "Produtivo", generate an appropriate textual response for the email in the same language as the email. If the classification is "Improdutivo", this key must be OBLIGATORILY null.
 
-Email: "{email_content}""""
+Email: "{email_content}"
 
         if context:
-            prompt += f"\nAdditional Context: "{context}""
+            prompt += f"\nAdditional Context: \"{context}\""
         
         return prompt
     
