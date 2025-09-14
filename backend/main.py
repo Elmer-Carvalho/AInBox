@@ -95,16 +95,24 @@ def create_app() -> FastAPI:
         """
         WebSocket endpoint for real-time communication
         """
+        # Aceitar conexão sem verificação CORS (resolve problema 403)
+        await websocket.accept()
+        logger.info("🔌 WebSocket connection accepted")
+        
+        # Conectar ao manager
         await websocket_manager.connect(websocket)
+        logger.info("📡 WebSocket connected to manager")
+        
         try:
             while True:
                 # Keep connection alive and handle incoming messages
                 data = await websocket.receive_text()
-                logger.debug(f"Received WebSocket message: {data}")
+                logger.debug(f"📨 Received WebSocket message: {data}")
         except Exception as e:
-            logger.error(f"WebSocket error: {e}")
+            logger.error(f"❌ WebSocket error: {e}")
         finally:
             await websocket_manager.disconnect(websocket)
+            logger.info("🔌 WebSocket disconnected")
     
     return app
 
