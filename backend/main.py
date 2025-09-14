@@ -79,7 +79,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins_list,
-        allow_credentials=True,
+        # allow_credentials=True, # LINHA REMOVIDA - conflito com allow_origins=['*']
         allow_methods=["*"],
         allow_headers=["*"],
     )
