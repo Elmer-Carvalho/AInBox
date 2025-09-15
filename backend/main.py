@@ -39,6 +39,10 @@ async def lifespan(app: FastAPI):
     logger.info("🔄 Initializing FastAPILimiter...")
     redis_pool = None
     try:
+        # Aumentar o timeout de conexão para 30 segundos durante o startup
+        # Isso dá mais tempo para a rede do Google Cloud se estabelecer
+        connect_timeout = 30
+        
         # Define o protocolo com base na configuração de SSL
         protocol = "rediss" if settings.REDIS_SSL else "redis"
         
@@ -50,12 +54,12 @@ async def lifespan(app: FastAPI):
             redis_connection_url,
             encoding="utf-8", 
             decode_responses=True,
-            socket_connect_timeout=10
+            socket_connect_timeout=connect_timeout
         )
         
         # Testa a conexão com PING
         await redis_pool.ping()
-        logger.info("✅ Redis connection successful (PING successful)")
+        logger.info(f"✅ Redis connection successful (PING successful within {connect_timeout}s timeout)")
         
         # Inicialização correta do FastAPILimiter
         await FastAPILimiter.init(redis_pool)
