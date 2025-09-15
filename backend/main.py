@@ -5,7 +5,7 @@ Main FastAPI application entry point
 
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 import redis.asyncio as redis
@@ -38,12 +38,15 @@ async def lifespan(app: FastAPI):
     logger.info("🔄 Initializing FastAPILimiter...")
     redis_pool = None
     try:
-        # Criação da conexão Redis assíncrona
-        redis_connection_url = f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}"
+        # Define o protocolo com base na configuração de SSL
+        protocol = "rediss" if settings.REDIS_SSL else "redis"
+        
+        # Constrói o URL de conexão
+        redis_connection_url = f"{protocol}://:{settings.REDIS_PASSWORD}@{settings.REDIS_HOST}:{settings.REDIS_PORT}"
+        
+        # Cria a conexão a partir do URL (sem o argumento 'ssl')
         redis_pool = redis.from_url(
-            redis_connection_url, 
-            password=settings.REDIS_PASSWORD,
-            ssl=settings.REDIS_SSL,
+            redis_connection_url,
             encoding="utf-8", 
             decode_responses=True
         )
@@ -91,12 +94,24 @@ def create_app() -> FastAPI:
     # Incluir as rotas da API
     app.include_router(api_router, prefix="/api/v1")
     
-    # Endpoint do WebSocket
+    # Endpoint do WebSocket com validação de origem
     @app.websocket("/ws")
-    async def websocket_endpoint(websocket):
+    async def websocket_endpoint(websocket: WebSocket):
         """
-        WebSocket endpoint for real-time communication
+        WebSocket endpoint for real-time communication.
+        Handles origin validation for secure connections.
         """
+        # Validação de Origem
+        origin = websocket.headers.get('origin')
+        allowed_origins = settings.allowed_origins_list
+        
+        # Permite todas as origens se a configuração for "*"
+        if "*" not in allowed_origins and origin not in allowed_origins:
+            logger.warning(f"Conexão WebSocket rejeitada da origem não permitida: {origin}")
+            await websocket.close(code=1008) # Policy Violation
+            return
+
+        # Procede com a conexão se a origem for válida
         connection_id = await websocket_manager.connect(websocket)
         try:
             while True:
