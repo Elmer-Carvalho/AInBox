@@ -1,17 +1,16 @@
 # AInBox Backend
 
-Sistema de análise de e-mails com IA utilizando Google Gemini API.
+Sistema de análise de e-mails com IA utilizando Google Gemini API. Classifica e-mails como produtivos/improdativos e gera sugestões de resposta em tempo real via WebSocket.
 
-## Tecnologias
+## 🚀 Tecnologias
 
-- **FastAPI**: Framework web assíncrono
-- **WebSockets**: Comunicação em tempo real
-- **Google Gemini AI**: Análise e classificação de e-mails
-- **NLTK**: Processamento avançado de linguagem natural
-- **spaCy**: Análise linguística avançada
-- **TextBlob**: Análise de sentimento e processamento de texto
-- **Uvicorn**: Servidor ASGI
-- **Pydantic**: Validação de dados
+- **FastAPI** - Framework web assíncrono
+- **WebSockets** - Comunicação em tempo real
+- **Google Gemini AI** - Análise e classificação de e-mails
+- **NLTK** - Processamento de linguagem natural
+- **Redis** - Rate limiting e cache
+- **Docker** - Containerização
+- **Google Cloud Run** - Deploy serverless
 
 ## Estrutura do Projeto
 
@@ -36,148 +35,116 @@ backend/
 └── env.example               # Environment variables template
 ```
 
-## Configuração
+## ⚙️ Configuração
 
-1. **Instalar dependências**:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Configurar variáveis de ambiente**:
-
-   ```bash
-   cp env.example .env
-   # Editar .env com suas configurações
-   ```
-
-3. **Configurar recursos do NLTK**:
-
-   ```bash
-   python setup_nltk.py
-   ```
-
-4. **Configurar chave da API do Google**:
-   - Obtenha uma chave da API do Google Gemini
-   - Adicione no arquivo `.env`:
-     ```
-     GOOGLE_API_KEY=sua_chave_aqui
-     ```
-
-## Execução
-
-### Desenvolvimento Local
+### Variáveis de Ambiente Obrigatórias
 
 ```bash
-# Instalar dependências
+# Google Gemini API
+GOOGLE_API_KEY=sua_chave_aqui
+
+# Redis (Google Cloud Memorystore)
+REDIS_HOST=10.53.247.67
+REDIS_PASSWORD=sua_senha_redis
+REDIS_SSL=true
+```
+
+### Setup Rápido
+
+```bash
+# 1. Instalar dependências
 pip install -r requirements.txt
 
-# Configurar NLTK
-python setup_nltk.py
+# 2. Configurar variáveis
+cp env.example .env
+# Editar .env com suas configurações
 
-# Executar aplicação
+# 3. Executar localmente
 python main.py
 ```
 
-### Docker
+## 🚀 Deploy
+
+### Google Cloud Run (Produção)
 
 ```bash
-# Build da imagem
-docker build -t ainbox-backend .
+# Deploy automático via Cloud Build
+git push origin main
+# Trigger automático no Google Cloud Build
+```
 
-# Executar container
+### Docker Local
+
+```bash
+# Build e execução
+docker build -t ainbox-backend .
 docker run -p 8000:8000 \
   -e GOOGLE_API_KEY=your_api_key \
   -e REDIS_HOST=localhost \
   ainbox-backend
 ```
 
-### Google Cloud Run
-
-```bash
-# Deploy direto do código fonte
-gcloud run deploy ainbox-backend \
-  --source . \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars="GOOGLE_API_KEY=your_api_key"
-```
-
-## Endpoints
-
-### Health Check
-
-- `GET /api/v1/health/` - Status básico da aplicação
-- `GET /api/v1/health/detailed` - Status detalhado
-- `GET /api/v1/health/rate-limit/{client_ip}` - Status de rate limiting
-- `POST /api/v1/health/rate-limit/{client_ip}/reset` - Reset rate limiting (admin)
+## 📡 API Endpoints
 
 ### Análise de E-mails
 
-- `POST /api/v1/analysis/emails` - Iniciar análise de e-mails (strings JSON)
-- `POST /api/v1/analysis/files` - Iniciar análise de e-mails (upload de arquivos .pdf/.txt)
+- `POST /api/v1/analysis/emails` - Análise de strings JSON
+- `POST /api/v1/analysis/files` - Upload de arquivos (.pdf/.txt)
 
 ### WebSocket
 
-- `WS /ws` - Conexão WebSocket para resultados em tempo real
+- `WS /ws` - Resultados em tempo real
 
-## WebSocket Messages
+### Health Check
+
+- `GET /api/v1/health/` - Status da aplicação
+- `GET /api/v1/health/detailed` - Status detalhado
+
+## 💬 WebSocket
 
 ### Tipos de Mensagem
 
-1. **connection_established**: Confirmação de conexão
-2. **analysis_result**: Resultado de análise de um e-mail
-3. **analysis_complete**: Análise de todos os e-mails concluída
-4. **error**: Mensagem de erro
+- `analysis_result` - Resultado de análise de um e-mail
+- `analysis_complete` - Análise concluída
+- `error` - Mensagem de erro
 
-### Exemplo de Uso
+### Exemplo JavaScript
 
 ```javascript
-const ws = new WebSocket("ws://localhost:8000/ws");
+const ws = new WebSocket("wss://sua-api.com/ws");
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-
-  switch (data.type) {
-    case "analysis_result":
-      console.log("Email analisado:", data.data);
-      break;
-    case "analysis_complete":
-      console.log("Análise concluída");
-      break;
+  if (data.type === "analysis_result") {
+    console.log("Email:", data.data.classification);
   }
 };
 ```
 
-## Exemplos de Uso
+## 📝 Exemplos de Uso
 
-### 1. Análise de Strings JSON
+### Análise de Strings
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/analysis/emails" \
+curl -X POST "https://sua-api.com/api/v1/analysis/emails" \
   -H "Content-Type: application/json" \
   -d '{
-    "emails": [
-      "Olá, preciso de uma reunião para discutir o projeto.",
-      "Obrigado pelo e-mail, vou responder em breve."
-    ],
+    "emails": ["Olá, preciso de uma reunião para discutir o projeto."],
     "context": "E-mails de trabalho",
     "connection_id": "conn_123"
   }'
 ```
 
-### 2. Upload de Arquivos
+### Upload de Arquivos
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/analysis/files" \
-  -F "files=@email1.pdf" \
-  -F "files=@email2.txt" \
+curl -X POST "https://sua-api.com/api/v1/analysis/files" \
+  -F "files=@email.pdf" \
   -F "context=E-mails importantes" \
   -F "connection_id=conn_123"
 ```
 
-### 3. Resposta da Análise
+### Resposta da Análise
 
 ```json
 {
@@ -185,74 +152,28 @@ curl -X POST "http://localhost:8000/api/v1/analysis/files" \
   "total_emails": 2,
   "classification": "Produtivo",
   "suggestion": "Sugestão de resposta gerada pela IA...",
-  "original_content": "Olá, preciso de uma reunião...",
-  "processed_content": "preciso reunião discutir projeto",
   "nlp_analysis": {
     "language": "pt",
-    "sentiment": {
-      "polarity": 0.1,
-      "subjectivity": 0.5,
-      "label": "neutral"
-    },
-    "entities": [],
-    "key_phrases": ["reunião", "projeto"],
-    "word_count": 8,
-    "processing_metadata": {
-      "original_length": 50,
-      "cleaned_length": 35,
-      "token_count": 10,
-      "filtered_token_count": 8
-    }
+    "sentiment": "neutral",
+    "key_phrases": ["reunião", "projeto"]
   }
 }
 ```
 
-## Segurança
+## 🔒 Segurança
 
-### Rate Limiting
+- **Rate Limiting**: 10 req/min por IP (Redis)
+- **Validação de Arquivos**: Máx 20 arquivos, 5MB cada
+- **CORS**: Configurado para frontend
+- **WebSocket**: Validação de origem
+- **Logs**: Estruturados para monitoramento
 
-- **10 requisições por minuto** por IP
-- **Redis** para armazenamento distribuído
-- **Fallback** para armazenamento em memória
-- **Headers** de rate limiting nas respostas
+## ✨ Funcionalidades
 
-### Validação de Arquivos
-
-- **Máximo 20 arquivos** por requisição
-- **Máximo 20 strings** por requisição
-- **5MB por arquivo** (total 100MB)
-- **Validação de tipo MIME**
-- **Detecção de conteúdo suspeito**
-
-### Monitoramento
-
-- **Logs de segurança** estruturados
-- **Métricas de rate limiting**
-- **Status de validação** em tempo real
-- **Reset de rate limiting** (admin)
-
-## Funcionalidades
-
-- ✅ Conexões WebSocket seguras e eficientes
-- ✅ Análise de e-mails com Google Gemini AI
-- ✅ Classificação binária (Produtivo/Improdutivo)
-- ✅ Geração condicional de sugestões de resposta
-- ✅ Processamento assíncrono em background
-- ✅ **Processamento NLP simplificado e otimizado para Gemini**
-- ✅ **Detecção automática de idioma**
-- ✅ **Análise de sentimento para português brasileiro**
-- ✅ **Normalização e limpeza inteligente de texto**
-- ✅ **Remoção de stopwords para PT-BR**
-- ✅ **Prompts multilíngues para IA**
-- ✅ **Upload de arquivos .pdf e .txt**
-- ✅ **Extração de texto de PDFs**
-- ✅ **Processamento em memória (stateless)**
-- ✅ **Rate limiting profissional com fastapi-limiter**
-- ✅ **Validação de segurança de arquivos**
-- ✅ **Limites de tamanho e quantidade**
-- ✅ **Detecção de conteúdo suspeito**
-- ✅ **Fallback para Redis indisponível**
-- ✅ Health checks e monitoramento
-- ✅ CORS configurado para frontend
-- ✅ Logging estruturado
-- ✅ Validação de dados com Pydantic
+- 🤖 **IA Google Gemini** - Classificação e sugestões
+- 🔄 **WebSocket** - Resultados em tempo real
+- 📄 **Upload de Arquivos** - PDF e TXT
+- 🌐 **NLP Avançado** - Português brasileiro
+- ⚡ **Rate Limiting** - Proteção contra spam
+- 🐳 **Docker** - Containerização
+- ☁️ **Google Cloud Run** - Deploy serverless
