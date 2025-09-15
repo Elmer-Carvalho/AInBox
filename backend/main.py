@@ -39,24 +39,21 @@ async def lifespan(app: FastAPI):
     logger.info("🔄 Initializing FastAPILimiter...")
     redis_pool = None
     try:
-        # Cria contexto SSL explícito para conexão segura
-        ssl_context = None
-        if settings.REDIS_SSL:
-            ssl_context = ssl.create_default_context()
-
-        # Instancia o cliente Redis diretamente com parâmetros explícitos
-        redis_pool = redis.Redis(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            password=settings.REDIS_PASSWORD,
-            ssl=settings.REDIS_SSL,
-            ssl_context=ssl_context,
-            encoding="utf-8",
+        # Define o protocolo com base na configuração de SSL
+        protocol = "rediss" if settings.REDIS_SSL else "redis"
+        
+        # Constrói o URL de conexão completo
+        redis_connection_url = f"{protocol}://:{settings.REDIS_PASSWORD}@{settings.REDIS_HOST}:{settings.REDIS_PORT}"
+        
+        # Cria a conexão a partir do URL (compatível com redis==5.0.1)
+        redis_pool = redis.from_url(
+            redis_connection_url,
+            encoding="utf-8", 
             decode_responses=True,
             socket_connect_timeout=10
         )
         
-        # Testa a conexão com PING para falha rápida
+        # Testa a conexão com PING
         await redis_pool.ping()
         logger.info("✅ Redis connection successful (PING successful)")
         
