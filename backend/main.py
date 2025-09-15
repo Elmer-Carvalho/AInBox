@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
+import redis.asyncio as redis
 
 from app.core.config import settings
 from app.api.routes import api_router
@@ -35,14 +36,21 @@ async def lifespan(app: FastAPI):
     
     # Initialize rate limiter
     logger.info("🔄 Initializing FastAPILimiter...")
+    redis_pool = None
     try:
-        # Nota: O nome do parâmetro mudou em versões mais recentes da biblioteca
-        # Usando 'redis_url' pode ser mais compatível, mas o código original usava 'redis'
-        await FastAPILimiter.init(
-            redis_url=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
+        # Criação da conexão Redis assíncrona
+        redis_connection_url = f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}"
+        redis_pool = redis.from_url(
+            redis_connection_url, 
             password=settings.REDIS_PASSWORD,
-            ssl=settings.REDIS_SSL
+            ssl=settings.REDIS_SSL,
+            encoding="utf-8", 
+            decode_responses=True
         )
+        
+        # Inicialização correta do FastAPILimiter
+        await FastAPILimiter.init(redis_pool)
+        
         dependencies.RATE_LIMITER_AVAILABLE = True
         logger.info("✅ Rate limiter initialized successfully")
     except Exception as e:
@@ -55,6 +63,8 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("🛑 Shutting down AInBox Backend...")
+    if redis_pool:
+        await redis_pool.close()
 
 
 def create_app() -> FastAPI:
