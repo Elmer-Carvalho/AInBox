@@ -25,39 +25,9 @@ class NLPProcessor:
     
     def __init__(self):
         """Initialize NLP processor with required resources"""
-        self._download_nltk_resources()
+        # A chamada para _download_nltk_resources() foi removida.
         self._initialize_components()
         logger.info("NLP Processor initialized with advanced preprocessing capabilities")
-    
-    def _download_nltk_resources(self) -> None:
-        """Download required NLTK resources"""
-        try:
-            nltk_data = [
-                'punkt',
-                'stopwords', 
-                'wordnet',
-                'averaged_perceptron_tagger',
-                'maxent_ne_chunker',
-                'words'
-            ]
-            
-            for resource in nltk_data:
-                try:
-                    # Check if resource exists with different paths
-                    if resource in ['punkt', 'stopwords', 'wordnet', 'words']:
-                        nltk.data.find(f'tokenizers/{resource}')
-                    elif resource == 'averaged_perceptron_tagger':
-                        nltk.data.find(f'taggers/{resource}')
-                    elif resource == 'maxent_ne_chunker':
-                        nltk.data.find(f'chunkers/{resource}')
-                    else:
-                        nltk.data.find(resource)
-                except LookupError:
-                    logger.info(f"Downloading NLTK resource: {resource}")
-                    nltk.download(resource, quiet=True)
-                    
-        except Exception as e:
-            logger.warning(f"Error downloading NLTK resources: {e}")
     
     def _initialize_components(self) -> None:
         """Initialize NLP components"""
