@@ -33,7 +33,7 @@ class AIService:
         language: str = "en"
     ) -> Dict[str, Any]:
         """
-        Analyze email content using Gemini AI
+        Analyze email content using Gemini AI with enhanced error handling.
         
         Args:
             email_content: The email content to analyze
@@ -44,24 +44,48 @@ class AIService:
             Dict[str, Any]: Analysis result with classification and suggestion
         """
         try:
-            # Construct the prompt
+            # Etapa 1: Construir o prompt
             prompt = self._build_analysis_prompt(email_content, context, language)
             
-            # Generate response from Gemini
-            response = self._generate_response(prompt)
+            raw_response_text = ""
+            try:
+                # Etapa 2: Gerar resposta do Gemini
+                response = self.model.generate_content(prompt)
+                
+                # Log detalhado para depuração
+                logger.debug(f"Raw Gemini response object: {response}")
+                
+                # Acessa o texto da resposta. Se a resposta foi bloqueada, isso pode gerar um erro.
+                raw_response_text = response.text
+                
+            except Exception as gemini_error:
+                # Captura o erro específico da biblioteca do Google
+                logger.error(f"Error directly from Google API call ({type(gemini_error).__name__}): {gemini_error}")
+                
+                # Verifica se há informações de feedback no objeto de resposta
+                if hasattr(gemini_error, '__dict__'):
+                    logger.error(f"Gemini error details: {gemini_error.__dict__}")
+                    
+                # Propaga o erro para ser tratado pelo bloco externo
+                raise gemini_error
+
+            # Log do texto bruto antes de analisar
+            logger.debug(f"Raw response text from Gemini: {raw_response_text}")
             
-            # Parse and validate response
-            result = self._parse_ai_response(response)
+            # Etapa 3: Analisar a resposta
+            result = self._parse_ai_response(raw_response_text)
             
-            logger.debug(f"Email analyzed successfully: {result['classification']}")
+            logger.debug(f"Email analyzed successfully: {result.get('classificacao')}")
             return result
             
         except Exception as e:
-            logger.error(f"Error analyzing email: {e}")
+            # O bloco de captura geral agora fornecerá um erro muito mais informativo
+            error_message = f"AI service failed during '{type(e).__name__}': {str(e)}"
+            logger.error(f"Error analyzing email: {error_message}")
             return {
                 "classification": "Error",
                 "suggestion": None,
-                "error": str(e)
+                "error": error_message
             }
     
     def _build_analysis_prompt(self, email_content: str, context: Optional[str] = None, language: str = "en") -> str:
