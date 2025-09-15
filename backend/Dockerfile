@@ -48,6 +48,9 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
+# Copy NLTK data from builder stage
+COPY --from=builder /usr/share/nltk_data /usr/share/nltk_data
+
 # Copy application code
 COPY . .
 
