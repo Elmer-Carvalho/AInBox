@@ -1,21 +1,31 @@
 # backend/app/dependencies.py
 
-from fastapi import Request
 from fastapi_limiter.depends import RateLimiter
 from app.core.config import settings
 
-# A flag global continua sendo útil para ser verificada pela dependência
+# A flag global que controla a disponibilidade do Redis
 RATE_LIMITER_AVAILABLE = False
 
-async def conditional_rate_limiter(request: Request):
+# Criamos uma instância única e reutilizável do limiter real
+_rate_limiter = RateLimiter(
+    times=settings.RATE_LIMIT_PER_MINUTE,
+    seconds=settings.RATE_LIMIT_WINDOW
+)
+
+# Criamos uma dependência "falsa" que não faz nada, para ser usada quando o Redis falha
+async def _dummy_limiter():
+    pass
+
+def get_rate_limiter():
     """
-    Dependência que aplica o rate limiting de forma condicional.
-    Esta função é executada a cada nova requisição.
+    Fábrica de dependências.
+
+    Esta função é chamada pelo FastAPI para cada requisição. Ela verifica o estado
+    da conexão com o Redis e retorna a dependência apropriada:
+    - O limiter real se o Redis estiver online.
+    - A função dummy se o Redis estiver offline.
     """
     if RATE_LIMITER_AVAILABLE:
-        # Se o Redis estiver disponível, cria e executa o limiter
-        limiter = RateLimiter(
-            times=settings.RATE_LIMIT_PER_MINUTE, 
-            seconds=settings.RATE_LIMIT_WINDOW
-        )
-        await limiter(request)
+        return _rate_limiter
+    else:
+        return _dummy_limiter
