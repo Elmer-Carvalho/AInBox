@@ -15,7 +15,8 @@ from app.services.file_processor import FileProcessor
 from app.services.security_validator import security_validator
 from app.websocket.manager import websocket_manager
 from loguru import logger
-from app.dependencies import get_rate_limiter
+from app.dependencies import conditional_rate_limiter
+from app import dependencies
 
 
 router = APIRouter()
@@ -35,12 +36,15 @@ class EmailAnalysisResponse(BaseModel):
     total_emails: int
 
 
-@router.post("/emails", response_model=EmailAnalysisResponse)
+@router.post(
+    "/emails", 
+    response_model=EmailAnalysisResponse,
+    dependencies=[Depends(conditional_rate_limiter)]
+)
 async def analyze_emails(
     request: EmailAnalysisRequest,
     background_tasks: BackgroundTasks,
-    request_obj: Request,
-    rate_limiter: None = Depends(get_rate_limiter())
+    request_obj: Request
 ) -> EmailAnalysisResponse:
     """
     Start email analysis process
@@ -53,7 +57,7 @@ async def analyze_emails(
         EmailAnalysisResponse: Analysis initiation response
     """
     logger.info("📧 Email analysis endpoint called")
-    logger.info(f"  - Rate limiter status: {'Enabled' if rate_limiter else 'Disabled'}")
+    logger.info(f"  - Rate limiter status: {'Enabled' if dependencies.RATE_LIMITER_AVAILABLE else 'Disabled'}")
     logger.info(f"  - Number of emails: {len(request.emails)}")
     logger.info(f"  - Connection ID: {request.connection_id}")
     
@@ -92,14 +96,17 @@ async def analyze_emails(
         raise HTTPException(status_code=500, detail=f"Error starting analysis: {str(e)}")
 
 
-@router.post("/files", response_model=EmailAnalysisResponse)
+@router.post(
+    "/files", 
+    response_model=EmailAnalysisResponse,
+    dependencies=[Depends(conditional_rate_limiter)]
+)
 async def analyze_email_files(
     request_obj: Request,
     files: List[UploadFile] = File(...),
     context: Optional[str] = Form(None),
     connection_id: Optional[str] = Form(None),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
-    rate_limiter: None = Depends(get_rate_limiter())
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ) -> EmailAnalysisResponse:
     """
     Start email analysis process from uploaded files
@@ -114,7 +121,7 @@ async def analyze_email_files(
         EmailAnalysisResponse: Analysis initiation response
     """
     logger.info("📁 File analysis endpoint called")
-    logger.info(f"  - Rate limiter status: {'Enabled' if rate_limiter else 'Disabled'}")
+    logger.info(f"  - Rate limiter status: {'Enabled' if dependencies.RATE_LIMITER_AVAILABLE else 'Disabled'}")
     logger.info(f"  - Number of files: {len(files)}")
     logger.info(f"  - Connection ID: {connection_id}")
     
