@@ -131,6 +131,44 @@ async def analyze_email_files(
                 detail=f"Validation failed: {', '.join(validation_result['errors'])}"
             )
         
+        # Generate task ID
+        task_id = f"task_{asyncio.get_event_loop().time()}"
+        
+        # Start background processing (including file processing)
+        background_tasks.add_task(
+            process_files_background,
+            files,
+            context,
+            connection_id,
+            task_id
+        )
+        
+        return EmailAnalysisResponse(
+            message="Email file analysis started",
+            task_id=task_id,
+            total_emails=len(files)  # Estimate based on file count
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error starting file analysis: {str(e)}")
+
+
+async def process_files_background(
+    files: List[UploadFile],
+    context: Optional[str],
+    connection_id: Optional[str],
+    task_id: str
+) -> None:
+    """
+    Background task to process uploaded files and then analyze emails
+    
+    Args:
+        files: List of uploaded files
+        context: Optional context for AI
+        connection_id: WebSocket connection ID
+        task_id: Task identifier
+    """
+    try:
         # Initialize file processor
         file_processor = FileProcessor()
         
@@ -144,28 +182,35 @@ async def analyze_email_files(
                 email_contents.append(file_result['text_content'])
         
         if not email_contents:
-            raise HTTPException(status_code=400, detail="No valid text content extracted from files")
+            error_msg = "No valid text content extracted from files"
+            if connection_id:
+                await websocket_manager.send_error(error_msg, connection_id)
+            else:
+                await websocket_manager.broadcast_message({
+                    "type": "error",
+                    "message": error_msg,
+                    "task_id": task_id
+                })
+            return
         
-        # Generate task ID
-        task_id = f"task_{asyncio.get_event_loop().time()}"
-        
-        # Start background processing
-        background_tasks.add_task(
-            process_emails_background,
+        # Now process the extracted email contents
+        await process_emails_background(
             email_contents,
             context,
             connection_id,
             task_id
         )
         
-        return EmailAnalysisResponse(
-            message="Email file analysis started",
-            task_id=task_id,
-            total_emails=len(email_contents)
-        )
-        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting file analysis: {str(e)}")
+        error_msg = f"Error processing files: {str(e)}"
+        if connection_id:
+            await websocket_manager.send_error(error_msg, connection_id)
+        else:
+            await websocket_manager.broadcast_message({
+                "type": "error",
+                "message": error_msg,
+                "task_id": task_id
+            })
 
 
 async def process_emails_background(
