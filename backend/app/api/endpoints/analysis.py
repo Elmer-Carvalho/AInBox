@@ -40,7 +40,7 @@ async def analyze_emails(
     request: EmailAnalysisRequest,
     background_tasks: BackgroundTasks,
     request_obj: Request,
-    rate_limiter = get_rate_limiter()
+    rate_limiter: None = Depends(get_rate_limiter())
 ) -> EmailAnalysisResponse:
     """
     Start email analysis process
@@ -99,7 +99,7 @@ async def analyze_email_files(
     context: Optional[str] = Form(None),
     connection_id: Optional[str] = Form(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    rate_limiter = get_rate_limiter()
+    rate_limiter: None = Depends(get_rate_limiter())
 ) -> EmailAnalysisResponse:
     """
     Start email analysis process from uploaded files

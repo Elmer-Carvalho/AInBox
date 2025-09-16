@@ -41,9 +41,9 @@ class Settings(BaseSettings):
     ALLOWED_FILE_TYPES: str = ".txt,.pdf"
     
     # Rate limiting settings
-    RATE_LIMIT_PER_MINUTE: int = 10
+    RATE_LIMIT_PER_MINUTE: int = 5
     RATE_LIMIT_WINDOW: int = 60  # seconds
-    RATE_LIMIT_BURST: int = 5  # burst allowance
+    RATE_LIMIT_BURST: int = 3  # burst allowance
     
     # Redis settings
     REDIS_HOST: str = "localhost"
