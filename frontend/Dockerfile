@@ -7,7 +7,7 @@ RUN npm install -g pnpm
 
 # Copia os arquivos de manifesto e instala as dependências
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+    RUN pnpm install --no-frozen-lockfile
 
 # Estágio 2: Build da aplicação
 FROM node:18-alpine AS builder
