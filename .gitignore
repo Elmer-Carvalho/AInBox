@@ -81,8 +81,10 @@ web_modules/
 .parcel-cache
 
 # Next.js build output
-.next
-out
+.next/
+out/
+/.next/
+/out/
 
 # Nuxt.js build / generate output
 .nuxt
@@ -333,7 +335,13 @@ out/
 
 # Lock files (keep package-lock.json for npm)
 yarn.lock
-pnpm-lock.yaml
+# pnpm-lock.yaml - keeping for frontend dependency management
+
+# Vercel
+.vercel
+
+# TypeScript
+next-env.d.ts
 
 # Local development
 .local/
