@@ -189,6 +189,23 @@ class WebSocketManager:
         else:
             await self.broadcast_message(message)
     
+    async def disconnect_by_id(self, connection_id: str):
+        """
+        Fecha e remove uma conexão WebSocket usando seu ID.
+        """
+        if connection_id in self.active_connections:
+            websocket = self.active_connections[connection_id]
+            try:
+                logger.info(f"Server is closing connection: {connection_id}")
+                await websocket.close(code=1000) # 1000 é o código para fechamento normal
+            except Exception as e:
+                logger.error(f"Error while closing connection {connection_id}: {e}")
+            
+            # Remove a conexão do dicionário para garantir a limpeza
+            del self.active_connections[connection_id]
+            logger.info(f"WebSocket disconnected by server: {connection_id}")
+            logger.info(f"Total active connections: {len(self.active_connections)}")
+    
     def get_connection_count(self) -> int:
         """
         Get the number of active connections

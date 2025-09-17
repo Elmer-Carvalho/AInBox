@@ -49,7 +49,11 @@ async def analyze_emails_unified(
 
     # Garante que as listas não sejam None para facilitar o processamento
     email_files = email_files or []
-    email_strings = email_strings or []
+    
+    # --- CORREÇÃO APLICADA AQUI ---
+    # Filtra strings vazias que podem ser enviadas pelo formulário quando o campo está vazio
+    email_strings = [s for s in (email_strings or []) if s.strip()]
+    # --- FIM DA CORREÇÃO ---
 
     # Validação: Pelo menos um e-mail deve ser enviado
     if not email_files and not email_strings:
@@ -155,7 +159,22 @@ async def process_emails_background(emails: List[str], context: Optional[str], c
             except Exception as e:
                 error_result = {"email_index": index + 1, "total_emails": len(emails), "error": str(e), "classification": "Error", "suggestion": None}
                 await (websocket_manager.send_analysis_result(error_result, connection_id) if connection_id else websocket_manager.broadcast_message({"type": "analysis_result", "data": error_result, "task_id": task_id}))
-        await (websocket_manager.send_analysis_complete(connection_id) if connection_id else websocket_manager.broadcast_message({"type": "analysis_complete", "task_id": task_id, "message": "All emails processed successfully"}))
+        # --- CORREÇÃO APLICADA AQUI ---
+        # Envia a mensagem de conclusão
+        if connection_id:
+            await websocket_manager.send_analysis_complete(connection_id)
+            # Adiciona um pequeno delay para garantir que a mensagem seja enviada antes de fechar
+            await asyncio.sleep(1)
+            # Fecha ativamente a conexão
+            await websocket_manager.disconnect_by_id(connection_id)
+        else:
+            # Se for um broadcast, não fechamos conexões individuais
+            await websocket_manager.broadcast_message({
+                "type": "analysis_complete",
+                "task_id": task_id,
+                "message": "All emails processed successfully"
+            })
+        # --- FIM DA CORREÇÃO ---
     except Exception as e:
         error_msg = f"Error processing emails: {str(e)}"
         await (websocket_manager.send_error(error_msg, connection_id) if connection_id else websocket_manager.broadcast_message({"type": "error", "message": error_msg, "task_id": task_id}))
