@@ -5,8 +5,9 @@ Main FastAPI application entry point
 
 import os
 import ssl
+import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 import redis.asyncio as redis
@@ -104,32 +105,54 @@ def create_app() -> FastAPI:
     # Incluir as rotas da API
     app.include_router(api_router, prefix="/api/v1")
     
-    # Endpoint do WebSocket com validação de origem
+    # Endpoint do WebSocket com validação de origem E HEARTBEAT
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
         """
         WebSocket endpoint for real-time communication.
-        Handles origin validation for secure connections.
+        Handles origin validation and keeps the connection alive with heartbeats.
         """
-        # Validação de Origem
+        # Validação de Origem (código existente)
         origin = websocket.headers.get('origin')
         allowed_origins = settings.allowed_origins_list
-        
-        # Permite todas as origens se a configuração for "*"
         if "*" not in allowed_origins and origin not in allowed_origins:
             logger.warning(f"Conexão WebSocket rejeitada da origem não permitida: {origin}")
-            await websocket.close(code=1008) # Policy Violation
+            await websocket.close(code=1008)
             return
 
-        # Procede com a conexão se a origem for válida
+        # Procede com a conexão
         connection_id = await websocket_manager.connect(websocket)
+
+        # --- LÓGICA DO HEARTBEAT ---
+        async def send_pings():
+            """Envia um ping a cada X segundos para manter a conexão viva."""
+            while True:
+                try:
+                    await asyncio.sleep(settings.WS_HEARTBEAT_INTERVAL)
+                    await websocket.send_json({"type": "ping"})
+                    logger.debug(f"Ping sent to {connection_id}")
+                except WebSocketDisconnect:
+                    logger.info(f"Ping failed: client {connection_id} disconnected.")
+                    break
+                except Exception as e:
+                    logger.error(f"Error sending ping to {connection_id}: {e}")
+                    break
+        
+        ping_task = asyncio.create_task(send_pings())
+        # --- FIM DA LÓGICA DO HEARTBEAT ---
+
         try:
+            # Loop principal para escutar mensagens do cliente (se houver)
             while True:
                 data = await websocket.receive_text()
                 logger.debug(f"Received WebSocket message on {connection_id}: {data}")
+                # Aqui você pode adicionar lógica para lidar com mensagens do cliente, como um "pong"
+        except WebSocketDisconnect:
+            logger.info(f"Client {connection_id} disconnected.")
         except Exception as e:
             logger.error(f"WebSocket error on {connection_id}: {e}")
         finally:
+            ping_task.cancel() # Garante que a tarefa de ping seja encerrada
             await websocket_manager.disconnect(websocket)
     
     return app
