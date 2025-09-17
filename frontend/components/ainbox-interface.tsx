@@ -221,7 +221,9 @@ export function AInBoxInterface() {
   const connectWebSocket = (): Promise<string> => {
     return new Promise((resolve, reject) => {
       try {
-        const ws = new WebSocket("wss://ainbox-backend-356969755759.southamerica-east1.run.app/ws")
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://ainbox-backend-356969755759.southamerica-east1.run.app";
+        const wsUrl = apiUrl.replace(/^http/, 'ws');
+        const ws = new WebSocket(`${wsUrl}/ws`)
 
         ws.onopen = () => {
           console.log("[v0] WebSocket connected")
@@ -331,7 +333,8 @@ export function AInBoxInterface() {
         formData.append("context_file", contextFile.file)
       }
 
-      const response = await fetch("https://ainbox-backend-356969755759.southamerica-east1.run.app/api/v1/analysis", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://ainbox-backend-356969755759.southamerica-east1.run.app";
+      const response = await fetch(`${apiUrl}/api/v1/analysis`, {
         method: "POST",
         body: formData,
       })
