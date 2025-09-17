@@ -12,6 +12,7 @@ COPY package.json pnpm-lock.yaml ./
 # Estágio 2: Build da aplicação
 FROM node:18-alpine AS builder
 WORKDIR /app
+RUN npm install -g pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -25,6 +26,9 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+
+# Instala o pnpm no estágio final
+RUN npm install -g pnpm
 
 # Copia os artefatos de build
 COPY --from=builder /app/public ./public
