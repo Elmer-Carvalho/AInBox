@@ -12,129 +12,136 @@ from app.services.file_processor import FileProcessor
 from app.services.security_validator import security_validator
 from app.websocket.manager import websocket_manager
 from loguru import logger
-# Importe a nova dependência e o módulo dependencies
 from app.dependencies import rate_limit_dependency
 from app import dependencies
 
-# Aplicamos a dependência a nível de router.
-# Todas as rotas definidas neste router passarão por este check.
+# A dependência continua aplicada a nível de router
 router = APIRouter(dependencies=[Depends(rate_limit_dependency)])
 
 
-class EmailAnalysisRequest(BaseModel):
-    emails: List[str] = []
-    context: Optional[str] = None
-    connection_id: Optional[str] = None
-
-
+# O modelo de resposta continua o mesmo
 class EmailAnalysisResponse(BaseModel):
     message: str
     task_id: str
     total_emails: int
 
 
-@router.post("/emails", response_model=EmailAnalysisResponse)
-async def analyze_emails(
-    request: EmailAnalysisRequest,
-    background_tasks: BackgroundTasks,
-    request_obj: Request
-    # O parâmetro rate_limiter foi removido daqui
-) -> EmailAnalysisResponse:
-    """
-    Start email analysis process
-    """
-    logger.info("📧 Email analysis endpoint called")
-    logger.info(f"  - Rate limiter status: {'Enabled' if dependencies.RATE_LIMITER_AVAILABLE else 'Disabled'}")
-    logger.info(f"  - Number of emails: {len(request.emails)}")
-    logger.info(f"  - Connection ID: {request.connection_id}")
-    
-    # O corpo da função permanece o mesmo
-    try:
-        validation_result = security_validator.validate_file_upload_request(
-            files=[], strings=request.emails
-        )
-        if not validation_result["valid"]:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Validation failed: {', '.join(validation_result['errors'])}"
-            )
-        task_id = f"task_{asyncio.get_event_loop().time()}"
-        background_tasks.add_task(
-            process_emails_background,
-            request.emails,
-            request.context,
-            request.connection_id,
-            task_id,
-        )
-        return EmailAnalysisResponse(
-            message="Email analysis started",
-            task_id=task_id,
-            total_emails=len(request.emails),
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting analysis: {str(e)}")
-
-
-@router.post("/files", response_model=EmailAnalysisResponse)
-async def analyze_email_files(
+# Unificamos as rotas em um único endpoint
+@router.post("", response_model=EmailAnalysisResponse)
+async def analyze_emails_unified(
     request_obj: Request,
-    files: List[UploadFile] = File(...),
-    context: Optional[str] = Form(None),
-    connection_id: Optional[str] = Form(None),
-    background_tasks: BackgroundTasks = BackgroundTasks()
-    # O parâmetro rate_limiter foi removido daqui
+    background_tasks: BackgroundTasks,
+    # E-mails como arquivos: opcional, pode ser uma lista vazia
+    email_files: List[UploadFile] = File(None),
+    # E-mails como strings: opcional, pode ser uma lista vazia
+    email_strings: List[str] = Form(None),
+    # Contexto como arquivo: opcional
+    context_file: Optional[UploadFile] = File(None),
+    # Contexto como string: opcional
+    context_string: Optional[str] = Form(None),
+    # Connection ID: obrigatório
+    connection_id: str = Form(...)
 ) -> EmailAnalysisResponse:
     """
-    Start email analysis process from uploaded files
+    Inicia o processo de análise para e-mails de múltiplas fontes (arquivos e strings).
     """
-    logger.info("📁 File analysis endpoint called")
-    logger.info(f"  - Rate limiter status: {'Enabled' if dependencies.RATE_LIMITER_AVAILABLE else 'Disabled'}")
-    logger.info(f"  - Number of files: {len(files)}")
-    logger.info(f"  - Connection ID: {connection_id}")
+    logger.info("📧 Análise unificada de e-mails iniciada")
+
+    # Garante que as listas não sejam None para facilitar o processamento
+    email_files = email_files or []
+    email_strings = email_strings or []
+
+    # Validação: Pelo menos um e-mail deve ser enviado
+    if not email_files and not email_strings:
+        raise HTTPException(
+            status_code=400,
+            detail="Nenhum e-mail foi fornecido. Envie e-mails através de 'email_files' ou 'email_strings'."
+        )
+
+    # Validação de segurança
+    all_files_to_validate = email_files + ([context_file] if context_file else [])
+    validation_result = security_validator.validate_file_upload_request(
+        files=all_files_to_validate, strings=email_strings
+    )
     
-    # O corpo da função permanece o mesmo
-    try:
-        validation_result = security_validator.validate_file_upload_request(
-            files=files, strings=[]
+    if not validation_result["valid"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Validation failed: {', '.join(validation_result['errors'])}"
         )
-        if not validation_result["valid"]:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Validation failed: {', '.join(validation_result['errors'])}"
-            )
-        task_id = f"task_{asyncio.get_event_loop().time()}"
-        background_tasks.add_task(
-            process_files_background,
-            files,
-            context,
-            connection_id,
-            task_id,
-        )
-        return EmailAnalysisResponse(
-            message="Email file analysis started",
-            task_id=task_id,
-            total_emails=len(files),
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting file analysis: {str(e)}")
+    
+    task_id = f"task_{asyncio.get_event_loop().time()}"
+    total_emails = len(email_files) + len(email_strings)
+    
+    logger.info(f"  - Total de e-mails a processar: {total_emails}")
+    logger.info(f"  - Connection ID: {connection_id}")
+
+    # Inicia a tarefa de background com todos os dados
+    background_tasks.add_task(
+        process_all_sources_background,
+        email_files,
+        email_strings,
+        context_file,
+        context_string,
+        connection_id,
+        task_id
+    )
+
+    return EmailAnalysisResponse(
+        message="Análise de e-mails iniciada",
+        task_id=task_id,
+        total_emails=total_emails,
+    )
 
 
-# As funções de background permanecem inalteradas
-async def process_files_background(files: List[UploadFile], context: Optional[str], connection_id: Optional[str], task_id: str) -> None:
-    try:
-        file_processor = FileProcessor()
-        processed_files = await file_processor.process_uploaded_files(files)
-        email_contents = [res['text_content'] for res in processed_files if res['success'] and res['text_content']]
-        if not email_contents:
-            error_msg = "No valid text content extracted from files"
-            await (websocket_manager.send_error(error_msg, connection_id) if connection_id else websocket_manager.broadcast_message({"type": "error", "message": error_msg, "task_id": task_id}))
-            return
-        await process_emails_background(email_contents, context, connection_id, task_id)
-    except Exception as e:
-        error_msg = f"Error processing files: {str(e)}"
-        await (websocket_manager.send_error(error_msg, connection_id) if connection_id else websocket_manager.broadcast_message({"type": "error", "message": error_msg, "task_id": task_id}))
+async def process_all_sources_background(
+    email_files: List[UploadFile],
+    email_strings: List[str],
+    context_file: Optional[UploadFile],
+    context_string: Optional[str],
+    connection_id: str,
+    task_id: str
+):
+    """
+    Tarefa de background para processar e-mails de todas as fontes.
+    """
+    all_email_contents = list(email_strings)
+    final_context = context_string or ""
+    
+    file_processor = FileProcessor()
 
+    # 1. Processa o arquivo de contexto primeiro
+    if context_file:
+        try:
+            logger.info(f"Processando arquivo de contexto: {context_file.filename}")
+            context_content_result = await file_processor.process_uploaded_files([context_file])
+            if context_content_result and context_content_result[0]['success']:
+                final_context += "\n\n--- Contexto Adicional ---\n" + context_content_result[0]['text_content']
+        except Exception as e:
+            logger.error(f"Falha ao processar arquivo de contexto: {e}")
+            # Opcional: notificar o usuário sobre a falha no contexto via WebSocket
+
+    # 2. Processa os arquivos de e-mail
+    if email_files:
+        processed_files = await file_processor.process_uploaded_files(email_files)
+        for result in processed_files:
+            if result['success'] and result['text_content']:
+                all_email_contents.append(result['text_content'])
+
+    # 3. Envia para a tarefa de análise final
+    if not all_email_contents:
+        error_msg = "Nenhum conteúdo de e-mail válido foi extraído."
+        await websocket_manager.send_error(error_msg, connection_id)
+        return
+
+    await process_emails_background(
+        all_email_contents, final_context, connection_id, task_id
+    )
+
+
+# A função process_emails_background original pode ser mantida como está
 async def process_emails_background(emails: List[str], context: Optional[str], connection_id: Optional[str], task_id: str) -> None:
+    # ... (código existente sem alterações)
     try:
         ai_service = AIService()
         email_processor = EmailProcessor(ai_service)
