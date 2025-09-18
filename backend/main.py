@@ -115,6 +115,9 @@ def create_app() -> FastAPI:
         # Validação de Origem (código existente)
         origin = websocket.headers.get('origin')
         allowed_origins = settings.allowed_origins_list
+        logger.info(f"WebSocket connection attempt from origin: {origin}")
+        logger.info(f"Allowed origins: {allowed_origins}")
+        
         if "*" not in allowed_origins and origin not in allowed_origins:
             logger.warning(f"Conexão WebSocket rejeitada da origem não permitida: {origin}")
             await websocket.close(code=1008)
