@@ -223,6 +223,8 @@ export function AInBoxInterface() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://ainbox-backend-356969755759.southamerica-east1.run.app";
         const wsUrl = apiUrl.replace(/^http/, 'ws');
+        console.log("[v0] WebSocket connecting to:", `${wsUrl}/ws`);
+        console.log("[v0] API URL from env:", process.env.NEXT_PUBLIC_API_BASE_URL);
         const ws = new WebSocket(`${wsUrl}/ws`)
 
         ws.onopen = () => {
@@ -334,6 +336,8 @@ export function AInBoxInterface() {
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://ainbox-backend-356969755759.southamerica-east1.run.app";
+      console.log("[v0] API URL for fetch:", apiUrl);
+      console.log("[v0] Full fetch URL:", `${apiUrl}/api/v1/analysis`);
       const response = await fetch(`${apiUrl}/api/v1/analysis`, {
         method: "POST",
         body: formData,
