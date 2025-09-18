@@ -17,6 +17,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Seta a variável de ambiente para a URL do backend acessível do navegador
+# Esta variável será sobrescrita pelo docker-compose em runtime
 ENV NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 RUN pnpm build
