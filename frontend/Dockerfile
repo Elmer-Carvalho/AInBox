@@ -16,8 +16,8 @@ RUN npm install -g pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Seta a variável de ambiente para a URL do backend dentro do Docker
-ENV NEXT_PUBLIC_API_BASE_URL=http://backend:8000
+# Seta a variável de ambiente para a URL do backend acessível do navegador
+ENV NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 RUN pnpm build
 
