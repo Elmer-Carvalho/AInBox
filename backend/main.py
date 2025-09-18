@@ -118,7 +118,10 @@ def create_app() -> FastAPI:
         logger.info(f"WebSocket connection attempt from origin: {origin}")
         logger.info(f"Allowed origins: {allowed_origins}")
         
-        if "*" not in allowed_origins and origin not in allowed_origins:
+        # Permitir conexões sem origem (ferramentas como Postman) ou com origem válida
+        if origin is None:
+            logger.info("WebSocket connection from tool without origin (e.g., Postman) - allowing")
+        elif "*" not in allowed_origins and origin not in allowed_origins:
             logger.warning(f"Conexão WebSocket rejeitada da origem não permitida: {origin}")
             await websocket.close(code=1008)
             return
