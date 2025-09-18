@@ -180,11 +180,11 @@ class NLPProcessor:
                 'fr': 'fr', 'de': 'de'
             }
             
-            return lang_mapping.get(detected_lang, 'en')
+            return lang_mapping.get(detected_lang, 'pt')
             
         except Exception as e:
-            logger.warning(f"Language detection failed: {e}, defaulting to English")
-            return 'en'
+            logger.warning(f"Language detection failed: {e}, defaulting to Portuguese")
+            return 'pt'
     
     def _clean_and_normalize(self, text: str) -> str:
         """

@@ -30,7 +30,7 @@ class AIService:
         self, 
         email_content: str, 
         context: Optional[str] = None,
-        language: str = "en"
+        language: str = "pt"
     ) -> Dict[str, Any]:
         """
         Analyze email content using Gemini AI with enhanced error handling.
@@ -88,7 +88,7 @@ class AIService:
                 "error": error_message
             }
     
-    def _build_analysis_prompt(self, email_content: str, context: Optional[str] = None, language: str = "en") -> str:
+    def _build_analysis_prompt(self, email_content: str, context: Optional[str] = None, language: str = "pt") -> str:
         """
         Build the analysis prompt for Gemini
         
@@ -100,21 +100,55 @@ class AIService:
         Returns:
             str: Formatted prompt
         """
-        # Language-specific instructions
+        # Language-specific instructions with improved prompt
         language_instructions = {
-            "en": "Analyze the following email text. Classify it as \"Produtivo\" if it requires action or response, or \"Improdutivo\" if it doesn't.",
-            "pt": "Analise o seguinte texto de e-mail. Classifique-o como \"Produtivo\" se exigir ação ou resposta, ou \"Improdutivo\" caso contrário.",
-            "es": "Analiza el siguiente texto de correo electrónico. Clasifícalo como \"Produtivo\" si requiere acción o respuesta, o \"Improdutivo\" si no.",
-            "fr": "Analysez le texte d'e-mail suivant. Classez-le comme \"Produtivo\" s'il nécessite une action ou une réponse, ou \"Improdutivo\" sinon.",
-            "de": "Analysieren Sie den folgenden E-Mail-Text. Klassifizieren Sie ihn als \"Produtivo\", wenn eine Aktion oder Antwort erforderlich ist, oder \"Improdutivo\" wenn nicht."
+            "pt": """Analise os e-mails enviados e os classifique de duas formas:
+
+- Produtivo: para e-mails pertinentes, como questões que envolvam trabalho, agendamento, reuniões ou qualquer outro aspecto que não deve ser deixado de lado e exija uma resposta.
+
+- Improdutivo: felicitações de modo geral, spams ou qualquer outro assunto que não pareça exigir algum tipo de retorno.
+
+Para os e-mails produtivos, você deve gerar uma resposta adequada, se baseando na sua interpretação e em qualquer contexto adicional passado. A resposta deve seguir bons padrões de organização e coesão, além de se assemelhar a e-mails em sua estrutura. Os improdutivos não exigem resposta, portanto, você deve ignorar.""",
+            
+            "en": """Analyze the emails sent and classify them in two ways:
+
+- Produtivo: for relevant emails, such as work-related issues, scheduling, meetings or any other aspect that should not be overlooked and requires a response.
+
+- Improdutivo: general congratulations, spam or any other subject that does not seem to require some kind of return.
+
+For productive emails, you should generate an appropriate response, based on your interpretation and any additional context provided. The response should follow good organization and cohesion standards, and resemble emails in its structure. The unproductive ones do not require a response, so you should ignore them.""",
+            
+            "es": """Analiza los correos electrónicos enviados y clasifícalos de dos formas:
+
+- Produtivo: para correos electrónicos pertinentes, como cuestiones que involucren trabajo, programación, reuniones o cualquier otro aspecto que no debe ser dejado de lado y exija una respuesta.
+
+- Improdutivo: felicitaciones de modo general, spam o cualquier otro asunto que no parezca exigir algún tipo de retorno.
+
+Para los correos electrónicos productivos, debes generar una respuesta adecuada, basándote en tu interpretación y en cualquier contexto adicional proporcionado. La respuesta debe seguir buenos estándares de organización y cohesión, además de asemejarse a correos electrónicos en su estructura. Los improductivos no exigen respuesta, por lo tanto, debes ignorarlos.""",
+            
+            "fr": """Analysez les e-mails envoyés et classez-les de deux façons:
+
+- Produtivo: pour les e-mails pertinents, comme les questions qui impliquent le travail, la planification, les réunions ou tout autre aspect qui ne doit pas être laissé de côté et exige une réponse.
+
+- Improdutivo: félicitations en général, spam ou tout autre sujet qui ne semble pas exiger un type de retour.
+
+Pour les e-mails productifs, vous devez générer une réponse appropriée, en vous basant sur votre interprétation et sur tout contexte supplémentaire fourni. La réponse doit suivre de bons standards d'organisation et de cohésion, en plus de ressembler aux e-mails dans sa structure. Les improductifs n'exigent pas de réponse, donc vous devez les ignorer.""",
+            
+            "de": """Analysieren Sie die gesendeten E-Mails und klassifizieren Sie sie auf zwei Arten:
+
+- Produtivo: für relevante E-Mails, wie arbeitsbezogene Fragen, Terminplanung, Meetings oder jeden anderen Aspekt, der nicht übersehen werden sollte und eine Antwort erfordert.
+
+- Improdutivo: allgemeine Glückwünsche, Spam oder jedes andere Thema, das nicht zu erfordern scheint, eine Art von Rückgabe.
+
+Für produktive E-Mails sollten Sie eine angemessene Antwort generieren, basierend auf Ihrer Interpretation und jedem zusätzlichen bereitgestellten Kontext. Die Antwort sollte guten Organisations- und Kohäsionsstandards folgen und E-Mails in ihrer Struktur ähneln. Die unproduktiven erfordern keine Antwort, daher sollten Sie sie ignorieren."""
         }
         
-        base_instruction = language_instructions.get(language, language_instructions["en"])
+        base_instruction = language_instructions.get(language, language_instructions["pt"])
         
         prompt = f"""{base_instruction}
 
 Respond ONLY in JSON format, without any additional text or formatting. The JSON must contain two keys:
-1. "classificacao": with the value "Produtivo" or "Improdutivo"
+1. "classificacao": with the value "Produtivo" or "Improdutivo" (keep these terms in Portuguese)
 2. "sugestao_resposta": If the classification is "Produtivo", generate an appropriate textual response for the email in the same language as the email. If the classification is "Improdutivo", this key must be OBLIGATORILY null.
 
 Email: "{email_content}"
